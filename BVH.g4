@@ -45,7 +45,7 @@ channelType:
  numbers).
  */
 motion:
-	MOTION FRAMES COLON INT FRAME TIME COLON number frameLine*;
+	MOTION FRAMES COLON INT FRAME_TIME COLON number frameLine*;
 
 frameLine: number+ NL?;
 
@@ -67,8 +67,7 @@ OFFSET: 'OFFSET';
 CHANNELS: 'CHANNELS';
 MOTION: 'MOTION';
 FRAMES: 'Frames';
-FRAME: 'Frame';
-TIME: 'Time';
+FRAME_TIME: 'Frame Time';
 
 Xposition: 'Xposition';
 Yposition: 'Yposition';
