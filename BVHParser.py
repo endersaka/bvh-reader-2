@@ -156,6 +156,12 @@ class BVHParser ( Parser ):
             if hasattr( listener, "exitBvh" ):
                 listener.exitBvh(self)
 
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitBvh" ):
+                return visitor.visitBvh(self)
+            else:
+                return visitor.visitChildren(self)
+
 
 
 
@@ -204,6 +210,12 @@ class BVHParser ( Parser ):
         def exitRule(self, listener:ParseTreeListener):
             if hasattr( listener, "exitHierarchy" ):
                 listener.exitHierarchy(self)
+
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitHierarchy" ):
+                return visitor.visitHierarchy(self)
+            else:
+                return visitor.visitChildren(self)
 
 
 
@@ -255,6 +267,12 @@ class BVHParser ( Parser ):
         def exitRule(self, listener:ParseTreeListener):
             if hasattr( listener, "exitRoot" ):
                 listener.exitRoot(self)
+
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitRoot" ):
+                return visitor.visitRoot(self)
+            else:
+                return visitor.visitChildren(self)
 
 
 
@@ -318,6 +336,12 @@ class BVHParser ( Parser ):
         def exitRule(self, listener:ParseTreeListener):
             if hasattr( listener, "exitNode" ):
                 listener.exitNode(self)
+
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitNode" ):
+                return visitor.visitNode(self)
+            else:
+                return visitor.visitChildren(self)
 
 
 
@@ -388,6 +412,12 @@ class BVHParser ( Parser ):
             if hasattr( listener, "exitChildBlock" ):
                 listener.exitChildBlock(self)
 
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitChildBlock" ):
+                return visitor.visitChildBlock(self)
+            else:
+                return visitor.visitChildren(self)
+
 
 
 
@@ -450,6 +480,12 @@ class BVHParser ( Parser ):
             if hasattr( listener, "exitJoint" ):
                 listener.exitJoint(self)
 
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitJoint" ):
+                return visitor.visitJoint(self)
+            else:
+                return visitor.visitChildren(self)
+
 
 
 
@@ -508,6 +544,12 @@ class BVHParser ( Parser ):
             if hasattr( listener, "exitEndSite" ):
                 listener.exitEndSite(self)
 
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitEndSite" ):
+                return visitor.visitEndSite(self)
+            else:
+                return visitor.visitChildren(self)
+
 
 
 
@@ -563,6 +605,12 @@ class BVHParser ( Parser ):
         def exitRule(self, listener:ParseTreeListener):
             if hasattr( listener, "exitOffset" ):
                 listener.exitOffset(self)
+
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitOffset" ):
+                return visitor.visitOffset(self)
+            else:
+                return visitor.visitChildren(self)
 
 
 
@@ -620,6 +668,12 @@ class BVHParser ( Parser ):
         def exitRule(self, listener:ParseTreeListener):
             if hasattr( listener, "exitChannels" ):
                 listener.exitChannels(self)
+
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitChannels" ):
+                return visitor.visitChannels(self)
+            else:
+                return visitor.visitChildren(self)
 
 
 
@@ -691,6 +745,12 @@ class BVHParser ( Parser ):
         def exitRule(self, listener:ParseTreeListener):
             if hasattr( listener, "exitChannelType" ):
                 listener.exitChannelType(self)
+
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitChannelType" ):
+                return visitor.visitChannelType(self)
+            else:
+                return visitor.visitChildren(self)
 
 
 
@@ -768,6 +828,12 @@ class BVHParser ( Parser ):
             if hasattr( listener, "exitMotion" ):
                 listener.exitMotion(self)
 
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitMotion" ):
+                return visitor.visitMotion(self)
+            else:
+                return visitor.visitChildren(self)
+
 
 
 
@@ -841,6 +907,12 @@ class BVHParser ( Parser ):
             if hasattr( listener, "exitFrameLine" ):
                 listener.exitFrameLine(self)
 
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitFrameLine" ):
+                return visitor.visitFrameLine(self)
+            else:
+                return visitor.visitChildren(self)
+
 
 
 
@@ -903,6 +975,12 @@ class BVHParser ( Parser ):
             if hasattr( listener, "exitIdentifier" ):
                 listener.exitIdentifier(self)
 
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitIdentifier" ):
+                return visitor.visitIdentifier(self)
+            else:
+                return visitor.visitChildren(self)
+
 
 
 
@@ -952,6 +1030,12 @@ class BVHParser ( Parser ):
         def exitRule(self, listener:ParseTreeListener):
             if hasattr( listener, "exitNumber" ):
                 listener.exitNumber(self)
+
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitNumber" ):
+                return visitor.visitNumber(self)
+            else:
+                return visitor.visitChildren(self)
 
 
 
