@@ -73,7 +73,7 @@ class BPYBVHVisitor(BVHVisitor):
         return node
 
     def visitEndSite(self, ctx:BVHParser.EndSiteContext):
-        return {"name": "EndSite", "offset": self.visit(ctx.offset())}
+        return {"name": "End Site", "offset": self.visit(ctx.offset())}
     
     def visitMotion(self, ctx:BVHParser.MotionContext):
         num_frames = int(ctx.INT().getText())

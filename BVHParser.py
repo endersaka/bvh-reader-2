@@ -10,40 +10,40 @@ else:
 
 def serializedATN():
     return [
-        4,1,27,111,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,
+        4,1,26,110,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,
         6,2,7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,
         1,0,1,0,1,0,1,0,1,1,1,1,1,1,1,2,1,2,1,2,1,2,1,3,1,3,1,3,3,3,43,8,
         3,1,3,5,3,46,8,3,10,3,12,3,49,9,3,1,3,1,3,1,4,1,4,3,4,55,8,4,1,5,
-        1,5,1,5,1,5,1,6,1,6,1,6,1,6,1,6,1,6,1,7,1,7,1,7,1,7,1,7,1,8,1,8,
-        1,8,4,8,75,8,8,11,8,12,8,76,1,9,1,9,1,10,1,10,1,10,1,10,1,10,1,10,
-        1,10,1,10,5,10,89,8,10,10,10,12,10,92,9,10,1,11,4,11,95,8,11,11,
-        11,12,11,96,1,11,3,11,100,8,11,1,12,1,12,1,13,3,13,105,8,13,1,13,
-        1,13,3,13,109,8,13,1,13,0,0,14,0,2,4,6,8,10,12,14,16,18,20,22,24,
-        26,0,2,1,0,11,16,1,0,22,23,105,0,28,1,0,0,0,2,32,1,0,0,0,4,35,1,
-        0,0,0,6,39,1,0,0,0,8,54,1,0,0,0,10,56,1,0,0,0,12,60,1,0,0,0,14,66,
-        1,0,0,0,16,71,1,0,0,0,18,78,1,0,0,0,20,80,1,0,0,0,22,94,1,0,0,0,
-        24,101,1,0,0,0,26,104,1,0,0,0,28,29,3,2,1,0,29,30,3,20,10,0,30,31,
-        5,0,0,1,31,1,1,0,0,0,32,33,5,1,0,0,33,34,3,4,2,0,34,3,1,0,0,0,35,
-        36,5,2,0,0,36,37,3,24,12,0,37,38,3,6,3,0,38,5,1,0,0,0,39,40,5,17,
-        0,0,40,42,3,14,7,0,41,43,3,16,8,0,42,41,1,0,0,0,42,43,1,0,0,0,43,
-        47,1,0,0,0,44,46,3,8,4,0,45,44,1,0,0,0,46,49,1,0,0,0,47,45,1,0,0,
-        0,47,48,1,0,0,0,48,50,1,0,0,0,49,47,1,0,0,0,50,51,5,18,0,0,51,7,
-        1,0,0,0,52,55,3,10,5,0,53,55,3,12,6,0,54,52,1,0,0,0,54,53,1,0,0,
-        0,55,9,1,0,0,0,56,57,5,3,0,0,57,58,3,24,12,0,58,59,3,6,3,0,59,11,
-        1,0,0,0,60,61,5,4,0,0,61,62,5,5,0,0,62,63,5,17,0,0,63,64,3,14,7,
-        0,64,65,5,18,0,0,65,13,1,0,0,0,66,67,5,6,0,0,67,68,3,26,13,0,68,
-        69,3,26,13,0,69,70,3,26,13,0,70,15,1,0,0,0,71,72,5,7,0,0,72,74,5,
-        22,0,0,73,75,3,18,9,0,74,73,1,0,0,0,75,76,1,0,0,0,76,74,1,0,0,0,
-        76,77,1,0,0,0,77,17,1,0,0,0,78,79,7,0,0,0,79,19,1,0,0,0,80,81,5,
-        8,0,0,81,82,5,9,0,0,82,83,5,19,0,0,83,84,5,22,0,0,84,85,5,10,0,0,
-        85,86,5,19,0,0,86,90,3,26,13,0,87,89,3,22,11,0,88,87,1,0,0,0,89,
-        92,1,0,0,0,90,88,1,0,0,0,90,91,1,0,0,0,91,21,1,0,0,0,92,90,1,0,0,
-        0,93,95,3,26,13,0,94,93,1,0,0,0,95,96,1,0,0,0,96,94,1,0,0,0,96,97,
-        1,0,0,0,97,99,1,0,0,0,98,100,5,25,0,0,99,98,1,0,0,0,99,100,1,0,0,
-        0,100,23,1,0,0,0,101,102,5,20,0,0,102,25,1,0,0,0,103,105,5,21,0,
-        0,104,103,1,0,0,0,104,105,1,0,0,0,105,106,1,0,0,0,106,108,7,1,0,
-        0,107,109,5,24,0,0,108,107,1,0,0,0,108,109,1,0,0,0,109,27,1,0,0,
-        0,9,42,47,54,76,90,96,99,104,108
+        1,5,1,5,1,5,1,6,1,6,1,6,1,6,1,6,1,7,1,7,1,7,1,7,1,7,1,8,1,8,1,8,
+        4,8,74,8,8,11,8,12,8,75,1,9,1,9,1,10,1,10,1,10,1,10,1,10,1,10,1,
+        10,1,10,5,10,88,8,10,10,10,12,10,91,9,10,1,11,4,11,94,8,11,11,11,
+        12,11,95,1,11,3,11,99,8,11,1,12,1,12,1,13,3,13,104,8,13,1,13,1,13,
+        3,13,108,8,13,1,13,0,0,14,0,2,4,6,8,10,12,14,16,18,20,22,24,26,0,
+        2,1,0,10,15,1,0,21,22,104,0,28,1,0,0,0,2,32,1,0,0,0,4,35,1,0,0,0,
+        6,39,1,0,0,0,8,54,1,0,0,0,10,56,1,0,0,0,12,60,1,0,0,0,14,65,1,0,
+        0,0,16,70,1,0,0,0,18,77,1,0,0,0,20,79,1,0,0,0,22,93,1,0,0,0,24,100,
+        1,0,0,0,26,103,1,0,0,0,28,29,3,2,1,0,29,30,3,20,10,0,30,31,5,0,0,
+        1,31,1,1,0,0,0,32,33,5,1,0,0,33,34,3,4,2,0,34,3,1,0,0,0,35,36,5,
+        2,0,0,36,37,3,24,12,0,37,38,3,6,3,0,38,5,1,0,0,0,39,40,5,16,0,0,
+        40,42,3,14,7,0,41,43,3,16,8,0,42,41,1,0,0,0,42,43,1,0,0,0,43,47,
+        1,0,0,0,44,46,3,8,4,0,45,44,1,0,0,0,46,49,1,0,0,0,47,45,1,0,0,0,
+        47,48,1,0,0,0,48,50,1,0,0,0,49,47,1,0,0,0,50,51,5,17,0,0,51,7,1,
+        0,0,0,52,55,3,10,5,0,53,55,3,12,6,0,54,52,1,0,0,0,54,53,1,0,0,0,
+        55,9,1,0,0,0,56,57,5,3,0,0,57,58,3,24,12,0,58,59,3,6,3,0,59,11,1,
+        0,0,0,60,61,5,4,0,0,61,62,5,16,0,0,62,63,3,14,7,0,63,64,5,17,0,0,
+        64,13,1,0,0,0,65,66,5,5,0,0,66,67,3,26,13,0,67,68,3,26,13,0,68,69,
+        3,26,13,0,69,15,1,0,0,0,70,71,5,6,0,0,71,73,5,21,0,0,72,74,3,18,
+        9,0,73,72,1,0,0,0,74,75,1,0,0,0,75,73,1,0,0,0,75,76,1,0,0,0,76,17,
+        1,0,0,0,77,78,7,0,0,0,78,19,1,0,0,0,79,80,5,7,0,0,80,81,5,8,0,0,
+        81,82,5,18,0,0,82,83,5,21,0,0,83,84,5,9,0,0,84,85,5,18,0,0,85,89,
+        3,26,13,0,86,88,3,22,11,0,87,86,1,0,0,0,88,91,1,0,0,0,89,87,1,0,
+        0,0,89,90,1,0,0,0,90,21,1,0,0,0,91,89,1,0,0,0,92,94,3,26,13,0,93,
+        92,1,0,0,0,94,95,1,0,0,0,95,93,1,0,0,0,95,96,1,0,0,0,96,98,1,0,0,
+        0,97,99,5,24,0,0,98,97,1,0,0,0,98,99,1,0,0,0,99,23,1,0,0,0,100,101,
+        5,19,0,0,101,25,1,0,0,0,102,104,5,20,0,0,103,102,1,0,0,0,103,104,
+        1,0,0,0,104,105,1,0,0,0,105,107,7,1,0,0,106,108,5,23,0,0,107,106,
+        1,0,0,0,107,108,1,0,0,0,108,27,1,0,0,0,9,42,47,54,75,89,95,98,103,
+        107
     ]
 
 class BVHParser ( Parser ):
@@ -56,18 +56,17 @@ class BVHParser ( Parser ):
 
     sharedContextCache = PredictionContextCache()
 
-    literalNames = [ "<INVALID>", "'HIERARCHY'", "'ROOT'", "'JOINT'", "'End'", 
-                     "'Site'", "'OFFSET'", "'CHANNELS'", "'MOTION'", "'Frames'", 
-                     "'Frame Time'", "'Xposition'", "'Yposition'", "'Zposition'", 
-                     "'Xrotation'", "'Yrotation'", "'Zrotation'", "'{'", 
-                     "'}'", "':'" ]
+    literalNames = [ "<INVALID>", "'HIERARCHY'", "'ROOT'", "'JOINT'", "'End Site'", 
+                     "'OFFSET'", "'CHANNELS'", "'MOTION'", "'Frames'", "'Frame Time'", 
+                     "'Xposition'", "'Yposition'", "'Zposition'", "'Xrotation'", 
+                     "'Yrotation'", "'Zrotation'", "'{'", "'}'", "':'" ]
 
-    symbolicNames = [ "<INVALID>", "HIERARCHY", "ROOT", "JOINT", "END", 
-                      "SITE", "OFFSET", "CHANNELS", "MOTION", "FRAMES", 
-                      "FRAME_TIME", "Xposition", "Yposition", "Zposition", 
-                      "Xrotation", "Yrotation", "Zrotation", "LBRACE", "RBRACE", 
-                      "COLON", "IDENT", "SIGN", "INT", "FLOAT", "EXP", "NL", 
-                      "WS", "COMMENT" ]
+    symbolicNames = [ "<INVALID>", "HIERARCHY", "ROOT", "JOINT", "END_SITE", 
+                      "OFFSET", "CHANNELS", "MOTION", "FRAMES", "FRAME_TIME", 
+                      "Xposition", "Yposition", "Zposition", "Xrotation", 
+                      "Yrotation", "Zrotation", "LBRACE", "RBRACE", "COLON", 
+                      "IDENT", "SIGN", "INT", "FLOAT", "EXP", "NL", "WS", 
+                      "COMMENT" ]
 
     RULE_bvh = 0
     RULE_hierarchy = 1
@@ -92,30 +91,29 @@ class BVHParser ( Parser ):
     HIERARCHY=1
     ROOT=2
     JOINT=3
-    END=4
-    SITE=5
-    OFFSET=6
-    CHANNELS=7
-    MOTION=8
-    FRAMES=9
-    FRAME_TIME=10
-    Xposition=11
-    Yposition=12
-    Zposition=13
-    Xrotation=14
-    Yrotation=15
-    Zrotation=16
-    LBRACE=17
-    RBRACE=18
-    COLON=19
-    IDENT=20
-    SIGN=21
-    INT=22
-    FLOAT=23
-    EXP=24
-    NL=25
-    WS=26
-    COMMENT=27
+    END_SITE=4
+    OFFSET=5
+    CHANNELS=6
+    MOTION=7
+    FRAMES=8
+    FRAME_TIME=9
+    Xposition=10
+    Yposition=11
+    Zposition=12
+    Xrotation=13
+    Yrotation=14
+    Zrotation=15
+    LBRACE=16
+    RBRACE=17
+    COLON=18
+    IDENT=19
+    SIGN=20
+    INT=21
+    FLOAT=22
+    EXP=23
+    NL=24
+    WS=25
+    COMMENT=26
 
     def __init__(self, input:TokenStream, output:TextIO = sys.stdout):
         super().__init__(input, output)
@@ -359,7 +357,7 @@ class BVHParser ( Parser ):
             self.state = 42
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            if _la==7:
+            if _la==6:
                 self.state = 41
                 self.channels()
 
@@ -516,11 +514,8 @@ class BVHParser ( Parser ):
             super().__init__(parent, invokingState)
             self.parser = parser
 
-        def END(self):
-            return self.getToken(BVHParser.END, 0)
-
-        def SITE(self):
-            return self.getToken(BVHParser.SITE, 0)
+        def END_SITE(self):
+            return self.getToken(BVHParser.END_SITE, 0)
 
         def LBRACE(self):
             return self.getToken(BVHParser.LBRACE, 0)
@@ -559,14 +554,12 @@ class BVHParser ( Parser ):
         try:
             self.enterOuterAlt(localctx, 1)
             self.state = 60
-            self.match(BVHParser.END)
+            self.match(BVHParser.END_SITE)
             self.state = 61
-            self.match(BVHParser.SITE)
-            self.state = 62
             self.match(BVHParser.LBRACE)
-            self.state = 63
+            self.state = 62
             self.offset()
-            self.state = 64
+            self.state = 63
             self.match(BVHParser.RBRACE)
         except RecognitionException as re:
             localctx.exception = re
@@ -620,13 +613,13 @@ class BVHParser ( Parser ):
         self.enterRule(localctx, 14, self.RULE_offset)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 66
+            self.state = 65
             self.match(BVHParser.OFFSET)
+            self.state = 66
+            self.number()
             self.state = 67
             self.number()
             self.state = 68
-            self.number()
-            self.state = 69
             self.number()
         except RecognitionException as re:
             localctx.exception = re
@@ -684,20 +677,20 @@ class BVHParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 71
+            self.state = 70
             self.match(BVHParser.CHANNELS)
-            self.state = 72
+            self.state = 71
             self.match(BVHParser.INT)
-            self.state = 74 
+            self.state = 73 
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             while True:
-                self.state = 73
+                self.state = 72
                 self.channelType()
-                self.state = 76 
+                self.state = 75 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 129024) != 0)):
+                if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 64512) != 0)):
                     break
 
         except RecognitionException as re:
@@ -761,9 +754,9 @@ class BVHParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 78
+            self.state = 77
             _la = self._input.LA(1)
-            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 129024) != 0)):
+            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 64512) != 0)):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -840,27 +833,27 @@ class BVHParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 80
+            self.state = 79
             self.match(BVHParser.MOTION)
-            self.state = 81
+            self.state = 80
             self.match(BVHParser.FRAMES)
+            self.state = 81
+            self.match(BVHParser.COLON)
             self.state = 82
-            self.match(BVHParser.COLON)
-            self.state = 83
             self.match(BVHParser.INT)
-            self.state = 84
+            self.state = 83
             self.match(BVHParser.FRAME_TIME)
-            self.state = 85
+            self.state = 84
             self.match(BVHParser.COLON)
-            self.state = 86
+            self.state = 85
             self.number()
-            self.state = 90
+            self.state = 89
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            while (((_la) & ~0x3f) == 0 and ((1 << _la) & 14680064) != 0):
-                self.state = 87
+            while (((_la) & ~0x3f) == 0 and ((1 << _la) & 7340032) != 0):
+                self.state = 86
                 self.frameLine()
-                self.state = 92
+                self.state = 91
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
 
@@ -917,25 +910,25 @@ class BVHParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 94 
+            self.state = 93 
             self._errHandler.sync(self)
             _alt = 1
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
                 if _alt == 1:
-                    self.state = 93
+                    self.state = 92
                     self.number()
 
                 else:
                     raise NoViableAltException(self)
-                self.state = 96 
+                self.state = 95 
                 self._errHandler.sync(self)
                 _alt = self._interp.adaptivePredict(self._input,5,self._ctx)
 
-            self.state = 99
+            self.state = 98
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            if _la==25:
-                self.state = 98
+            if _la==24:
+                self.state = 97
                 self.match(BVHParser.NL)
 
 
@@ -984,7 +977,7 @@ class BVHParser ( Parser ):
         self.enterRule(localctx, 24, self.RULE_identifier)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 101
+            self.state = 100
             self.match(BVHParser.IDENT)
         except RecognitionException as re:
             localctx.exception = re
@@ -1041,26 +1034,26 @@ class BVHParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 104
+            self.state = 103
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            if _la==21:
-                self.state = 103
+            if _la==20:
+                self.state = 102
                 self.match(BVHParser.SIGN)
 
 
-            self.state = 106
+            self.state = 105
             _la = self._input.LA(1)
-            if not(_la==22 or _la==23):
+            if not(_la==21 or _la==22):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
                 self.consume()
-            self.state = 108
+            self.state = 107
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            if _la==24:
-                self.state = 107
+            if _la==23:
+                self.state = 106
                 self.match(BVHParser.EXP)
 
 

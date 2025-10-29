@@ -23,7 +23,7 @@ childBlock: joint | endSite;
 
 joint: JOINT identifier node;
 
-endSite: END SITE LBRACE offset RBRACE;
+endSite: END_SITE LBRACE offset RBRACE;
 
 offset: OFFSET number number number;
 
@@ -61,8 +61,7 @@ number:
 HIERARCHY: 'HIERARCHY';
 ROOT: 'ROOT';
 JOINT: 'JOINT';
-END: 'End';
-SITE: 'Site';
+END_SITE: 'End Site';
 OFFSET: 'OFFSET';
 CHANNELS: 'CHANNELS';
 MOTION: 'MOTION';
