@@ -5,6 +5,7 @@
     """
 
 # First import system wide modules
+from calendar import c
 import enum
 import sys
 import os
@@ -85,12 +86,31 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         return Vector((x, y, z))  # No conversion for now
 
     # NOTE: Possible function for applying the first frame's joint|root transform.
-    def calc_first_frame_transform(world_pos, coords):
-        """ Calculate the transformation matrix for the root joint """
-        rot_mat4 = Euler([radians(channel) for channel in coords[3:5]]).to_matrix().to_4x4()
-        rot_mat4[0][3] += world_pos.x
-        rot_mat4[1][3] += world_pos.y
-        rot_mat4[2][3] += world_pos.z
+    
+    def calc_first_frame_transform(node_world_position, node_frame_coordinates):
+        """ Calculate the transformation matrix for a joint/node/segment
+        
+        Args:
+            node_world_position (mathutils.Vector): Vector rappresenting a position relative to World Space
+            node_frame_coordinates (list | tuple): list of float values that can have 3 or 6 elements 
+
+        Returns:
+            mathutils.Matrix: A 4x4 matrix carrying the result transformation
+        """
+
+        # TODO: we are not validating parameters.
+
+        # Previously, we were assuming that each node channels were 6, though
+        # sometimes only the root segment owns 6 channels, while the other joint
+        # segments have only 3 channels.
+        channel_rotations = node_frame_coordinates[3:5]
+        if len(node_frame_coordinates) < 6:
+            channel_rotations = node_frame_coordinates
+
+        rot_mat4 = Euler([radians(channel) for channel in channel_rotations]).to_matrix().to_4x4()
+        rot_mat4[0][3] += node_world_position.x
+        rot_mat4[1][3] += node_world_position.y
+        rot_mat4[2][3] += node_world_position.z
         return rot_mat4
 
     def create_bone_recursive(
@@ -207,12 +227,12 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         
         # The root joint typically has no parent, its offset is its position in world space.
         # Set the root's position.
-        root_offset = Vector(root_joint_data["offset"])
-        print(f"Root Offset (BVH coords): {root_offset}")
+        root_offset_vec = Vector(root_joint_data["offset"])
+        print(f"Root Offset (BVH coords): {root_offset_vec}")
 
         # We assume that the BVH file follows a Y Up, -Z Forward convention, so we convert accordingly.
         # TODO: actually I disabled this conversion for now since it seems the BVH I have is already in Z up?
-        root_world_pos = bvh_to_blender_coords(root_offset)
+        root_world_pos = bvh_to_blender_coords(root_offset_vec)
         print(f"Root World Position (Blender coords): {root_world_pos}")
 
         # Get the root joint name.
