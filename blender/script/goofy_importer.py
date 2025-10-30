@@ -5,7 +5,6 @@
     """
 
 # First import system wide modules
-from calendar import c
 import enum
 import sys
 import os
@@ -38,7 +37,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
     if text.filepath:
         # If the script is saved, retrieve its directory
-        script_dir = os.path.dirname(text.filepath)
+        script_dir = os.path.dirname(bpy.path.abspath(text.filepath))
     else:
         print("The script is not saved. Please save it to retrieve the directory.")
         exit(1)
