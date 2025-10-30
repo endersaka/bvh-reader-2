@@ -275,7 +275,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         #
         # The set off coordinate components associated to root joint at
         # frame 0.
-        frame_coords = bvh_structure['motion'][0][0]
+        frame_coords = bvh_structure['motion']['motion_data'][0][0]
         print(f"Root joint frame coordinate components: {frame_coords}")
 
         # Compute the transformation of the bone in the first frame.
@@ -284,7 +284,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         
         # Store the calculated matrix into `TRANSFORMS`.
         TRANSFORMS.append({'root': pose_bone_mat4})
-        print(f"Store the pose bone transformation.")
+        print(f"Store the pose bone transformation: {TRANSFORMS}")
 
         # Create the Root Bone
         root_bone = edit_bones.new(root_data.get('name', 'root'))
