@@ -111,7 +111,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         # Previously, we were assuming that each node channels were 6, though
         # sometimes only the root segment owns 6 channels, while the other joint
         # segments have only 3 channels.
-        channel_rotations = node_frame_coordinates[3:5]
+        channel_rotations = node_frame_coordinates[3:6]
         if len(node_frame_coordinates) < 6:
             channel_rotations = node_frame_coordinates
 
