@@ -172,50 +172,60 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                     parent_bone_world_pos=current_head_world_pos
                 )
 
-    def build_armature_from_bvh_structure(bvh_structure: dict):
+    def build_armature_from_bvh_dict(bvh_structure: dict):
         """
         Main function to initialize the Blender Armature and start the recursive build.
         """
+
         # Prepare the armature object
         armature_data = bpy.data.armatures.new("BVH_Armature_Data")
         armature_object = bpy.data.objects.new("BVH_Armature", armature_data)
         bpy.context.collection.objects.link(armature_object)
+        print(f"Created Armature Object {armature_object.name}: {armature_object in bpy.context.collection.objects}")
         
         # Deselect all and select the new armature
         bpy.ops.object.select_all(action='DESELECT')
         armature_object.select_set(True)
         bpy.context.view_layer.objects.active = armature_object
+        print(f"Selected Armature Object: {bpy.context.view_layer.objects.active.name}")
 
         # Switch to Edit Mode to create bones
         bpy.ops.object.mode_set(mode='EDIT')
+        print("Switched to Edit Mode")
 
         # Is a collection of EditBone objects which allow to edit armature bones.
         # specific type of collection: https://docs.blender.org/api/4.2/bpy.types.ArmatureEditBones.html
         # https://docs.blender.org/api/4.2/bpy.types.bpy_prop_collection.html
         # https://docs.blender.org/api/4.2/bpy.types.EditBone.html
         edit_bones = armature_data.edit_bones
+        print(f"Edit Bones Collection: {edit_bones}")
 
         # Get the Root Node (the 'hierarchy' object)
         root_joint_data = bvh_structure["hierarchy"]
+        print(f"Data collected for Root Joint: {root_joint_data.get('name', 'Unnamed Root!!!!!!!')}")
         
         # The root joint typically has no parent, its offset is its position in world space.
         # Set the root's position.
         root_offset = Vector(root_joint_data["offset"])
+        print(f"Root Offset (BVH coords): {root_offset}")
 
         # We assume that the BVH file follows a Y Up, -Z Forward convention, so we convert accordingly.
         # TODO: actually I disabled this conversion for now since it seems the BVH I have is already in Z up?
         root_world_pos = bvh_to_blender_coords(root_offset)
+        print(f"Root World Position (Blender coords): {root_world_pos}")
 
         # Get the root joint name.
-        root_name = root_joint_data['name']
+        root_name = root_joint_data.get('name', 'root')
+        print(f"Root Joint Name: {root_name}")
 
-        root_coords = bvh_structure['motion'][0][0]
-        root_rot_mat4 = calc_first_frame_transform(root_world_pos, root_coords)
+        # root_coords = bvh_structure['motion'][0][0]
+        # root_rot_mat4 = calc_first_frame_transform(root_world_pos, root_coords)
 
         # Create the Root Bone
         root_bone = edit_bones.new(root_name)
         root_bone.head = root_world_pos
         root_bone.parent = None
+        print(f"Created Root Bone: {root_bone.name} at {root_bone.head}")
 
         root_children = root_joint_data.get("children", [])
         if root_children:
@@ -248,6 +258,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         print(f"Successfully created Armature: {armature_object.name}")
 
     def init_blender_scene():
+        """ Initialize the Blender scene for Armature building. """
         # Clear any selection and ensure we are in a mode that allows object creation
         if bpy.context.object and bpy.context.object.mode != 'OBJECT':
             bpy.ops.object.mode_set(mode='OBJECT')
@@ -258,33 +269,34 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
 
 if __name__ == "__main__":
-    BVH_STRUCTURE = None
+    # Where to store the parsed BVH structure
+    bvh_dict = None # pylint: disable=invalid-name
     
-    # Get input file name from command line argument
-    INPUT_FILE = os.path.join(project_root, 'test.bvh')
+    # Get BVH file path
+    bvh_filepath = os.path.join(project_root, 'test.bvh')
 
     # Parse the BVH file
     try:
-        # Create input stream from file
-        input_stream = FileStream(INPUT_FILE)
+        # Create an input stream from filepath
+        input_stream = FileStream(bvh_filepath)
 
-        # Create lexer
+        # Create the lexer and the token stream
         lexer = BVHLexer(input_stream)
         stream = CommonTokenStream(lexer)
 
-        # Create parser
+        # Create the parser consuming the token stream
         parser = BVHParser(stream)
 
-        # Parse the input starting from the 'bvh' rule
+        # Parse the BVH file, beginning from the `bvh` rule, defined in the grammar `./BVH.g4`
         tree = parser.bvh()
         
-        # Print parse tree (for debugging)
+        # Log the parse tree (for debugging)
         # print(tree.toStringTree(recog=parser))
 
         v = BPYBVHVisitor()
-        BVH_STRUCTURE = v.visit(tree)
+        bvh_dict = v.visit(tree)
         
-        print(f"Total nodes visited: {v.nodes_count}")
+        print(f"Total visited nodes: {v.nodes_count}")
 
         print("\nParsing completed successfully!")
         
@@ -297,7 +309,7 @@ if __name__ == "__main__":
             init_blender_scene()
         
             # Import the BVH structure into Blender as an Armature
-            build_armature_from_bvh_structure(BVH_STRUCTURE)
+            build_armature_from_bvh_dict(bvh_dict)
         
         except Exception as e:
             print(f"Error while building Blender Armature: {str(e)}")
