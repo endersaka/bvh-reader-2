@@ -136,6 +136,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             joint_data (dict): joint data dictionary from BVH
             parent_edit_bone (bpy.types.EditBone): parent EditBone
         """
+        global node_frame_data_index
 
         node_frame_data_index += 1
 
