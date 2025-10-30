@@ -50,7 +50,8 @@ elif WORKINGENVIRONMENT == WorkingEnvironment.STANDALONE:
     # since __file__ is not defined there. We need to find another way to get the project root
     # in that case, perhaps by using bpy.path or similar Blender-specific APIs.
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    CONTEXTSYSPATHS.append(script_dir)
+
+CONTEXTSYSPATHS.append(script_dir)
 
 project_root = os.path.join(script_dir, '..', '..')
 CONTEXTSYSPATHS.append(project_root)
