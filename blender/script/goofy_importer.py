@@ -95,7 +95,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
     # NOTE: Possible function for applying the first frame's joint|root transform.
 
-    def calc_frame_transform(node_world_position, node_frame_coordinates):
+    def calc_frame_transform(edit_bone_head, node_frame_coordinates):
         """ Calculate the transformation matrix for a joint/node/segment
 
         Args:
@@ -117,9 +117,9 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
         rot_mat4 = Euler([radians(channel)
                          for channel in channel_rotations]).to_matrix().to_4x4()
-        rot_mat4[0][3] += node_world_position.x
-        rot_mat4[1][3] += node_world_position.y
-        rot_mat4[2][3] += node_world_position.z
+        rot_mat4[0][3] += edit_bone_head.x
+        rot_mat4[1][3] += edit_bone_head.y
+        rot_mat4[2][3] += edit_bone_head.z
         return rot_mat4
 
     def create_bones(
@@ -257,29 +257,38 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         print(
             f"Data collected for Root Joint: {root_data.get('name', 'Unnamed Root!!!!!!!')}")
 
-        # The root joint typically has no parent, its offset is its position in world space.
-        # Set the root's position.
-        root_offset_vec = Vector(root_data["offset"])
-        print(f"Root Offset (BVH coords): {root_offset_vec}")
 
-        # We assume that the BVH file follows a Y Up, -Z Forward convention, so we convert accordingly.
+        # We assume that the BVH file follows a Y Up, -Z Forward convention,
+        # and convert accordingly.
         # NOTE: disabled. MH BVHs are already in Z up.
         #
         # Enforce BPY naming conventions.
-        # bpy.types.EditBone.head is a mathutils.Vector, relative to Armature Space.
-        root_head = bvh_to_blender_coords(root_offset_vec)
-        print(f"Root World Position (Blender coords): {root_head}")
+        # `bpy.types.EditBone.head` is a `mathutils.Vector`, relative to
+        # Armature Space.
+        # In Blender, the Head of a Bone represents its rotation pivot.
+        print(f"BVH offset data of root joint: {root_data["offset"]}")
+        offset_vec = bvh_to_blender_coords(Vector(root_data["offset"]))
+        print(f"Offset `mathutils.Vector` (in Blender coords system): {offset_vec}")
 
-        # NOTE: we use a counter to access vector components, stored in a frame,
+        # NOTE: we use a counter to access per frame vector components,
         # we have to do so, until we change the frame data structure.
-        root_frame_coords = bvh_structure['motion'][0][0]
-        root_pose_mat4 = calc_frame_transform(root_head, root_frame_coords)
+        #
+        # The set off coordinate components associated to root joint at
+        # frame 0.
+        frame_coords = bvh_structure['motion'][0][0]
+        print(f"Root joint frame coordinate components: {frame_coords}")
+
+        # Compute the transformation of the bone in the first frame.
+        pose_bone_mat4 = calc_frame_transform(offset_vec, frame_coords)
+        print(f"Pose root bone transformation matrix at frame 0: {pose_bone_mat4}")
+        
         # Store the calculated matrix into `TRANSFORMS`.
-        TRANSFORMS.append({'root': root_pose_mat4})
+        TRANSFORMS.append({'root': pose_bone_mat4})
+        print(f"Store the pose bone transformation.")
 
         # Create the Root Bone
         root_bone = edit_bones.new(root_data.get('name', 'root'))
-        root_bone.head = root_head
+        root_bone.head = offset_vec
         root_bone.parent = None
         print(f"Created Root Bone: {root_bone.name} at {root_bone.head}")
 
@@ -293,13 +302,13 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             # Set root bone tail vector to the value of its first child offset.
             if first_child:
                 # NOTE: again, the possibly useless conversion.
-                root_bone.tail = root_head + \
+                root_bone.tail = offset_vec + \
                     bvh_to_blender_coords(Vector(first_child["offset"]))
             else:
                 # Fallback for a single-joint hierarchy
-                root_bone.tail = root_head + Vector((0.0, 0.0, 0.1))
+                root_bone.tail = offset_vec + Vector((0.0, 0.0, 0.1))
         else:
-            root_bone.tail = root_head + Vector((0.0, 0.0, 0.1))
+            root_bone.tail = offset_vec + Vector((0.0, 0.0, 0.1))
 
         # Recursively create children bones
         for child_data in root_children:
