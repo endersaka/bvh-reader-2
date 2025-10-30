@@ -266,7 +266,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         # `bpy.types.EditBone.head` is a `mathutils.Vector`, relative to
         # Armature Space.
         # In Blender, the Head of a Bone represents its rotation pivot.
-        print(f"BVH offset data of root joint: {root_data["offset"]}")
+        print("BVH offset data of root joint: " + root_data["offset"])
         offset_vec = bvh_to_blender_coords(Vector(root_data["offset"]))
         print(f"Offset `mathutils.Vector` (in Blender coords system): {offset_vec}")
 
