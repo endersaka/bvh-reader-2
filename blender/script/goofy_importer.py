@@ -30,6 +30,7 @@ except ImportError:
     print("Running outside Blender")
 
 CONTEXTSYSPATHS = []
+script_dir = ''
 
 if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
     # Get the current script being executed
@@ -38,7 +39,6 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
     if text.filepath:
         # If the script is saved, retrieve its directory
         script_dir = os.path.dirname(text.filepath)
-        print("Script Directory:", script_dir)
     else:
         print("The script is not saved. Please save it to retrieve the directory.")
         exit(1)
@@ -51,9 +51,12 @@ elif WORKINGENVIRONMENT == WorkingEnvironment.STANDALONE:
     # in that case, perhaps by using bpy.path or similar Blender-specific APIs.
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
-CONTEXTSYSPATHS.append(script_dir)
+print("Script Directory:", script_dir)
 
 project_root = os.path.join(script_dir, '..', '..')
+print("Project root:", project_root)
+
+CONTEXTSYSPATHS.append(script_dir)
 CONTEXTSYSPATHS.append(project_root)
 
 # Add all the gathered paths to sys.path if not already present.
@@ -72,6 +75,9 @@ try:
 except ImportError as e:
     print(f"Error importing Antlr files: {e}")
 
+
+node_frame_data_index = 0
+TRANSFORMS = []
 
 if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
     # FIXME: this funcion does nothing for the moment, MakeHuman community Asset Pack BVH files
@@ -197,9 +203,6 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                     parent_bone_name=bone_name,
                     parent_bone_world_pos=current_head_world_pos
                 )
-
-    node_frame_data_index = 0
-    TRANSFORMS = []
 
     def pose_armature():
         pass
