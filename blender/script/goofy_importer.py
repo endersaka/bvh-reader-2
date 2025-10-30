@@ -136,7 +136,8 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             joint_data (dict): joint data dictionary from BVH
             parent_edit_bone (bpy.types.EditBone): parent EditBone
         """
-        global node_frame_data_index
+
+        global node_frame_data_index, TRANSFORMS
 
         node_frame_data_index += 1
 
@@ -224,6 +225,8 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         Main function to initialize the Blender Armature and start the recursive build.
         """
 
+        global node_frame_data_index, TRANSFORMS
+
         # Prepare the armature object
         armature_data = bpy.data.armatures.new("BVH_Armature_Data")
         armature_object = bpy.data.objects.new("BVH_Armature", armature_data)
@@ -269,10 +272,10 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
         # NOTE: we use a counter to access vector components, stored in a frame,
         # we have to do so, until we change the frame data structure.
-        # root_frame_coords = bvh_structure['motion'][0][0]
-        # root_pose_mat4 = calc_frame_transform(root_head, root_frame_coords)
-        # # Store the calculated matrix into `TRANSFORMS`.
-        # TRANSFORMS.append({'root': root_pose_mat4})
+        root_frame_coords = bvh_structure['motion'][0][0]
+        root_pose_mat4 = calc_frame_transform(root_head, root_frame_coords)
+        # Store the calculated matrix into `TRANSFORMS`.
+        TRANSFORMS.append({'root': root_pose_mat4})
 
         # Create the Root Bone
         root_bone = edit_bones.new(root_data.get('name', 'root'))
