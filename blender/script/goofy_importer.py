@@ -81,7 +81,8 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         A common transformation for BVH to Blender is (X, Y, Z) -> (X, Z, -Y).
         """
         x, y, z = bvh_offset
-        return Vector((x, z, -y))
+        # return Vector((x, z, -y))
+        return Vector((x, y, z))  # No conversion for now
 
     # NOTE: Possible function for applying the first frame's joint|root transform.
     def calc_first_frame_transform(world_pos, coords):
