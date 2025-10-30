@@ -87,7 +87,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
     # NOTE: Possible function for applying the first frame's joint|root transform.
     
-    def calc_first_frame_transform(node_world_position, node_frame_coordinates):
+    def calc_frame_transform(node_world_position, node_frame_coordinates):
         """ Calculate the transformation matrix for a joint/node/segment
         
         Args:
@@ -114,7 +114,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         return rot_mat4
 
     def create_bone_recursive(
-        edit_bones: bpy.types.EditBone,
+        edit_bones: bpy.types.ArmatureEditBones,
         joint_data: dict,
         parent_bone_name: str,
         parent_bone_world_pos: Vector
@@ -123,15 +123,19 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         Recursively creates a bone for the current joint, setting its head, parent,
         and then determining its tip based on children/End Site rules.
         """
+        
+        node_frame_data_index += 1
+
         joint_name = joint_data.get("name")
         if joint_name == "End Site":
             # End Sites do not become bones themselves
             return
 
-        # Calculate the current joint's world head position
         # Offset is relative to the parent joint's head world position.
-        local_offset = Vector(joint_data["offset"])
-        blender_offset = bvh_to_blender_coords(local_offset)
+        offset_vec = Vector(joint_data['offset'])
+        blender_offset = bvh_to_blender_coords(offset_vec)
+        
+        # Calculate the current joint's world head position
         current_head_world_pos = parent_bone_world_pos + blender_offset
 
         # Create the new bone
@@ -193,6 +197,12 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                     parent_bone_world_pos=current_head_world_pos
                 )
 
+    node_frame_data_index = 0
+    TRANSFORMS = []
+
+    def pose_armature():
+        pass
+
     def build_armature_from_bvh_dict(bvh_structure: dict):
         """
         Main function to initialize the Blender Armature and start the recursive build.
@@ -222,48 +232,50 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         print(f"Edit Bones Collection: {edit_bones}")
 
         # Get the Root Node (the 'hierarchy' object)
-        root_joint_data = bvh_structure["hierarchy"]
-        print(f"Data collected for Root Joint: {root_joint_data.get('name', 'Unnamed Root!!!!!!!')}")
+        root_data = bvh_structure["hierarchy"]
+        print(f"Data collected for Root Joint: {root_data.get('name', 'Unnamed Root!!!!!!!')}")
         
         # The root joint typically has no parent, its offset is its position in world space.
         # Set the root's position.
-        root_offset_vec = Vector(root_joint_data["offset"])
+        root_offset_vec = Vector(root_data["offset"])
         print(f"Root Offset (BVH coords): {root_offset_vec}")
 
         # We assume that the BVH file follows a Y Up, -Z Forward convention, so we convert accordingly.
-        # TODO: actually I disabled this conversion for now since it seems the BVH I have is already in Z up?
-        root_world_pos = bvh_to_blender_coords(root_offset_vec)
-        print(f"Root World Position (Blender coords): {root_world_pos}")
+        # NOTE: disabled. MH BVHs are already in Z up.
+        #
+        # Enforce BPY naming conventions.
+        # bpy.types.EditBone.head is a mathutils.Vector, relative to Armature Space.
+        root_head = bvh_to_blender_coords(root_offset_vec) 
+        print(f"Root World Position (Blender coords): {root_head}")
 
-        # Get the root joint name.
-        root_name = root_joint_data.get('name', 'root')
-        print(f"Root Joint Name: {root_name}")
-
-        # root_coords = bvh_structure['motion'][0][0]
-        # root_rot_mat4 = calc_first_frame_transform(root_world_pos, root_coords)
+        # NOTE: we use a counter to access vector components, stored in a frame,
+        # we have to do so, until we change the frame data structure.
+        root_frame_coords = bvh_structure['motion'][0][0]
+        root_pose_mat4 = calc_frame_transform(root_head, root_frame_coords)
+        # Store the calculated matrix into `TRANSFORMS`.
+        TRANSFORMS.append({'root': root_pose_mat4})
 
         # Create the Root Bone
-        root_bone = edit_bones.new(root_name)
-        root_bone.head = root_world_pos
+        root_bone = edit_bones.new(root_data.get('name', 'root'))
+        root_bone.head = root_head
         root_bone.parent = None
         print(f"Created Root Bone: {root_bone.name} at {root_bone.head}")
 
-        root_children = root_joint_data.get("children", [])
+        # TODO: actually here we would like to compute a midpoint of the root
+        # head and its children heads.
+        root_children = root_data.get("children", [])
         if root_children:
-            # TODO: verify this absurd logic...
             first_child = next((c for c in root_children if c.get("name") != "End Site"), None)
             
+            # Set root bone tail vector to the value of its first child offset.
             if first_child:
-                # Set the root bone tail position to the position (offset) of its first child bone head.
-                first_child_offset = Vector(first_child["offset"])
-                # TODO: again, the possibly useless conversion.
-                blender_first_child_offset = bvh_to_blender_coords(first_child_offset)
-                root_bone.tail = root_world_pos + blender_first_child_offset
+                # NOTE: again, the possibly useless conversion.
+                root_bone.tail = root_head + bvh_to_blender_coords(Vector(first_child["offset"]))
             else:
                 # Fallback for a single-joint hierarchy
-                root_bone.tail = root_world_pos + Vector((0.0, 0.0, 0.1))
+                root_bone.tail = root_head + Vector((0.0, 0.0, 0.1))
         else:
-            root_bone.tail = root_world_pos + Vector((0.0, 0.0, 0.1))
+            root_bone.tail = root_head + Vector((0.0, 0.0, 0.1))
 
         # Recursively create children bones
         for child_data in root_children:
@@ -271,7 +283,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                 edit_bones,
                 child_data,
                 parent_bone_name=root_name,
-                parent_bone_world_pos=root_world_pos
+                parent_bone_world_pos=root_head
             )
 
         # Switch back to Object Mode
@@ -331,6 +343,7 @@ if __name__ == "__main__":
         
             # Import the BVH structure into Blender as an Armature
             build_armature_from_bvh_dict(bvh_dict)
+            print(f'TRANSFORMS: {TRANSFORMS}')
         
         except Exception as e:
             print(f"Error while building Blender Armature: {str(e)}")
