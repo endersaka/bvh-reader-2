@@ -26,7 +26,7 @@ To install the Antlr4 runtime in the Blender Python environment you should invok
 On Windows 11, Blender installer places the application directory wherever you choose, though, the default directory shoud be `C:\Program Files\`, to which is appended `.\Blender Foundation\Blender 4.2\` and, finally, Python stuff is inside `.\4.2\python\`. If you don't have permissions to install Python packages into the installation Blender directory, `pip` automaticaly falls back to `C:\Users\<username>\AppData\Roaming\Python\Python311\Scripts`, which is actually desiderable.
 
 ```powershell
-& "C:\Program Files\Blender Foundation\Blender 4.2\4.2\python\bin\python.exe" -m pip show antlr4-python3-runtime
+& "C:\Program Files\Blender Foundation\Blender 4.2\4.2\python\bin\python.exe" -m pip install antlr4-python3-runtime
 ```
 
 ## Usage
