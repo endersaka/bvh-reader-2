@@ -257,7 +257,7 @@ if __name__ == "__main__":
     bpy.ops.object.delete(use_global=False)
     
     # Get input file name from command line argument
-    INPUT_FILE = '../../test.bvh'
+    INPUT_FILE = os.path.join(project_root, 'test.bvh')
 
     try:
         # Create input stream from file
