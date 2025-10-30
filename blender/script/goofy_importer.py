@@ -181,7 +181,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         armature_data = bpy.data.armatures.new("BVH_Armature_Data")
         armature_object = bpy.data.objects.new("BVH_Armature", armature_data)
         bpy.context.collection.objects.link(armature_object)
-        print(f"Created Armature Object {armature_object.name}: {armature_object in bpy.context.collection.objects}")
+        print(f"Created Armature Object {armature_object.name}: {armature_object.name in bpy.context.collection.objects}")
         
         # Deselect all and select the new armature
         bpy.ops.object.select_all(action='DESELECT')
