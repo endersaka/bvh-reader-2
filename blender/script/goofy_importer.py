@@ -151,7 +151,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         blender_offset = bvh_to_blender_coords(offset_vec)
 
         # Calculate the current joint's world head position
-        current_head_world_pos = parent_edit_bone.head + blender_offset
+        head_vec = parent_edit_bone.head + blender_offset
 
         # Create the new bone
         # Use the joint name, or a default if missing.
@@ -170,7 +170,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
         # Finally create the bone
         new_bone = edit_bones.new(bone_name)
-        new_bone.head = current_head_world_pos
+        new_bone.head = head_vec
         new_bone.parent = edit_bones.get(parent_edit_bone.name)
 
         # Determine the current bone's tip position
@@ -183,7 +183,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             # Rule: "End Site" named nodes serve to place the bone tip of their parent node.
             end_site_offset = bvh_to_blender_coords(
                 Vector(end_site_child["offset"]))
-            new_bone.tail = current_head_world_pos + end_site_offset
+            new_bone.tail = head_vec + end_site_offset
 
         elif children:
             # Rule: The tips of parent bones should just use the offset of (let's say) the first child bone.
@@ -195,17 +195,17 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                 first_child_offset = Vector(first_child_joint["offset"])
                 blender_first_child_offset = bvh_to_blender_coords(
                     first_child_offset)
-                new_bone.tail = current_head_world_pos + blender_first_child_offset
+                new_bone.tail = head_vec + blender_first_child_offset
             else:
                 # Fallback for joints whose only children are 'End Site' nodes (handled by the if end_site_child check)
                 # or for a malformed hierarchy. Since the End Site check is first, this fallback is less likely.
-                new_bone.tail = current_head_world_pos + \
+                new_bone.tail = head_vec + \
                     Vector((0.0, 0.0, 0.1))  # Small length along Z-axis (up)
 
         else:
             # TODO: I would eventually extrude the tail along the direction of the parent bone?
             # Leaf bone without an End Site
-            new_bone.tail = current_head_world_pos + \
+            new_bone.tail = head_vec + \
                 Vector((0.0, 0.0, 0.1))  # Small length along Z-axis (up)
 
         # Recursively call for all non-End Site children
