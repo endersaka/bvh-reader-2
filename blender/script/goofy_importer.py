@@ -125,7 +125,8 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
     def create_bones(
         edit_bones: bpy.types.ArmatureEditBones,
         joint_data: dict,
-        parent_edit_bone: bpy.types.EditBone
+        parent_edit_bone: bpy.types.EditBone,
+        bvh_structure: dict
     ):
         """Recursively creates a bone for the current joint, setting
         its head, parent, and then determining its tip based on
@@ -166,6 +167,10 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             while f"{bone_name}.{i:03d}" in edit_bones:
                 i += 1
             bone_name = f"{bone_name}.{i:03d}"
+
+        frame_coords = bvh_structure['motion']['motion_data'][0][node_frame_data_index]
+        pose_bone_mat4 = calc_frame_transform(offset_vec, frame_coords)
+        TRANSFORMS.append({f'{bone_name}': pose_bone_mat4})
 
         # Finally create the bone
         new_bone = edit_bones.new(bone_name)
@@ -283,7 +288,6 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         
         # Store the calculated matrix into `TRANSFORMS`.
         TRANSFORMS.append({'root': pose_bone_mat4})
-        print(f"Store the pose bone transformation: {TRANSFORMS}")
 
         # Create the Root Bone
         root_bone = edit_bones.new(root_data.get('name', 'root'))
@@ -314,8 +318,11 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             create_bones(
                 edit_bones,
                 child_data,
-                root_bone
+                root_bone,
+                bvh_structure
             )
+
+        print(f"Store the pose bone transformation: {TRANSFORMS}")
 
         # Switch back to Object Mode
         bpy.ops.object.mode_set(mode='OBJECT')
