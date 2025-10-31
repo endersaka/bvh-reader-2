@@ -149,7 +149,8 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
         # This block is `PoseBone.rotation_mode` agnostic, so, all we can do is
         # calculating the euler rotation.
-        return Euler([radians(channel) for channel in bvh_to_blender_axis(rotation_components)])
+        # return Euler([radians(channel) for channel in bvh_to_blender_axis(rotation_components)])
+        return Euler([radians(channel) for channel in rotation_components])
 
     def create_bones(
         edit_bones: bpy.types.ArmatureEditBones,
