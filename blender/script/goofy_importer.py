@@ -97,7 +97,7 @@ def append_transform(segment_name, transform):
 
 
 if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
-    def compute_midpoint(vectors: Sequence[Vector]) -> Vector:
+    def compute_midpoint(points: Sequence[Vector] | Sequence[Sequence[float]] | None) -> Vector:
         """ Compute the mid point of a sequence of `mathutils.Vector` objects
 
         Args:
@@ -106,7 +106,10 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         Returns:
             Vector: the mid point Vector
         """
-        return sum(vectors) / len(vectors)
+        if points is None:
+            return Vector((.0, .0, .1))
+
+        return sum(points) / len(points)
 
     def bvh_to_blender_axis(components):
         """
@@ -203,9 +206,11 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
             elif len(children) > 1:
                 edit_bone.tail = edit_bone.head + \
-                    compute_midpoint([child.head for child in children])
+                    compute_midpoint([child.get('offset')
+                                     for child in children])
+
         else:
-            # Small length along Z-axis (up)
+            # Add a small length along Z-axis (up)
             edit_bone.tail = edit_bone.head + Vector((0.0, 0.0, 0.1))
 
         # The set off coordinate components associated to the joint at
