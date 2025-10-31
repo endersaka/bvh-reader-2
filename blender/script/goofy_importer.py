@@ -169,8 +169,6 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
         global node_frame_data_index, TRANSFORMS
 
-        node_frame_data_index += 1
-
         #######################################################################
         # HERE BEGINS THE PART THAT IS NEARLY IDENTICAL IN `build_armature...`#
         #######################################################################
@@ -201,7 +199,8 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         if edit_bone.parent is None:
             edit_bone.head = Vector(joint_data['offset'])
         else:
-            edit_bone.head = edit_bone.parent.head + Vector(joint_data['offset'])
+            edit_bone.head = edit_bone.parent.head + \
+                Vector(joint_data['offset'])
 
         # Determine bone's tail position
         children = joint_data.get('children')
@@ -222,13 +221,13 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         # frame 0.
         # NOTE: we use a counter to access per frame vector components,
         # we have to do so, until we change the frame data structure.
-        #frame_coords = bvh_structure['motion']['motion_data'][0][node_frame_data_index]
+        frame_coords = bvh_structure['motion']['motion_data'][0][node_frame_data_index]
 
         # Compute the transformation of the bone in the first frame.
-        #pose_bone_euler = euler_from_components(frame_coords)
+        # pose_bone_euler = euler_from_components(frame_coords)
 
         # Store the calculated matrix into `TRANSFORMS`.
-        #append_transform(bone_name, pose_bone_euler)
+        # append_transform(bone_name, pose_bone_euler)
 
         # Recursively traverse the hierarchy and create descendant bone
         for child_data in children:
@@ -241,6 +240,9 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                     edit_bone,
                     bvh_structure
                 )
+
+        node_frame_data_index += 1
+
 
     def create_armature():
         """ Create the armature, prepare the environment, and return a
