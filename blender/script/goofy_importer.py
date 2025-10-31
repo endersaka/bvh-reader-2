@@ -192,9 +192,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
         if end_site_child:
             # Rule: "End Site" named nodes serve to place the bone tip of their parent node.
-            end_site_offset = bvh_to_blender_axis(
-                Vector(end_site_child["offset"]))
-            new_bone.tail = head_vec + end_site_offset
+            new_bone.tail = head_vec + Vector(end_site_child["offset"])
 
         elif children:
             # Rule: The tips of parent bones should just use the offset of (let's say) the first child bone.
@@ -203,10 +201,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
             if first_child_joint:
                 # The tip is the world position (head) of the first child joint.
-                first_child_offset = Vector(first_child_joint["offset"])
-                blender_first_child_offset = bvh_to_blender_axis(
-                    first_child_offset)
-                new_bone.tail = head_vec + blender_first_child_offset
+                new_bone.tail = head_vec + Vector(first_child_joint["offset"])
             else:
                 # Fallback for joints whose only children are 'End Site' nodes (handled by the if end_site_child check)
                 # or for a malformed hierarchy. Since the End Site check is first, this fallback is less likely.
