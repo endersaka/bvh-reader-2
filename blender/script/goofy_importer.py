@@ -222,9 +222,6 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                     bvh_structure
                 )
 
-    def pose_armature():
-        pass
-
     def build_armature_from_bvh_dict(bvh_structure: dict):
         """
         Main function to initialize the Blender Armature and start the recursive build.
@@ -323,6 +320,8 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                 bvh_structure
             )
 
+        pose_armature()
+
         # Switch back to Object Mode
         bpy.ops.object.mode_set(mode='OBJECT')
         print(f"Successfully created Armature: {armature_object.name}")
@@ -336,6 +335,20 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         # Clear existing objects in the scene before running
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.delete(use_global=False)
+
+    def pose_armature():
+        """" bla bla """
+        global TRANSFORMS
+
+        armature = bpy.context.view_layer.objects.active
+
+        # Switch to Edit Mode to create bones
+        bpy.ops.object.mode_set(mode='POSE')
+        print("Switched to Pose Mode")
+
+        for transform in TRANSFORMS:
+            pose_bone = armature.pose.bones[[*transform][0]]
+            pose_bone.matrix = transform[pose_bone.name] @ pose_bone.matrix
 
 
 if __name__ == "__main__":
