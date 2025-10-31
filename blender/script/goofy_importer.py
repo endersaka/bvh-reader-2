@@ -79,6 +79,18 @@ except ImportError as e:
 
 node_frame_data_index = 0
 TRANSFORMS = []
+def append_transform(segment_name, transform):
+    """ Convenience function to append new transforms to `TRANSFORMS` list, as
+        a more structured data.
+
+    Args:
+        segment_name (String): the name of the `JOINT` or `ROOT` segment
+        transform (mathutils.Euler | mathutils.Quaternion | mathutils.Matrix): transformation
+    """    
+    TRANSFORMS.append({
+        'segment_name': segment_name,
+        'transform': transform
+    })
 
 if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
     # FIXME: this funcion does nothing for the moment, MakeHuman community Asset Pack BVH files
@@ -95,7 +107,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
     # NOTE: Possible function for applying the first frame's joint|root transform.
 
-    def calc_frame_transform(edit_bone_head, node_frame_coordinates):
+    def euler_from_components(transform_components):
         """ Calculate the transformation matrix for a joint/node/segment
 
         Args:
@@ -108,19 +120,16 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
         # TODO: we are not validating parameters.
 
-        # Previously, we were assuming that each node channels were 6, though
-        # sometimes only the root segment owns 6 channels, while the other joint
-        # segments have only 3 channels.
-        channel_rotations = node_frame_coordinates[3:6]
-        if len(node_frame_coordinates) < 6:
-            channel_rotations = node_frame_coordinates
+        # Commonly, `ROOT` segment has 6 channels, while `JOINT` segments only 3.
+        # We need to account for this possibility.
+        if len(transform_components) < 6:
+            rotation_components = transform_components
+        else:
+            rotation_components = transform_components[3:6]
 
-        rot_mat4 = Euler([radians(channel)
-                         for channel in channel_rotations]).to_matrix().to_4x4()
-        rot_mat4[0][3] += edit_bone_head.x
-        rot_mat4[1][3] += edit_bone_head.y
-        rot_mat4[2][3] += edit_bone_head.z
-        return rot_mat4
+        # This block is `PoseBone.rotation_mode` agnostic, so, all we can do is
+        # calculating the euler rotation.
+        return Euler([radians(channel) for channel in rotation_components])
 
     def create_bones(
         edit_bones: bpy.types.ArmatureEditBones,
@@ -169,8 +178,8 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             bone_name = f"{bone_name}.{i:03d}"
 
         frame_coords = bvh_structure['motion']['motion_data'][0][node_frame_data_index]
-        pose_bone_mat4 = calc_frame_transform(offset_vec, frame_coords)
-        TRANSFORMS.append({f'{bone_name}': pose_bone_mat4})
+        pose_bone_euler = euler_from_components(frame_coords)
+        append_transform(bone_name, pose_bone_euler)
 
         # Finally create the bone
         new_bone = edit_bones.new(bone_name)
@@ -281,11 +290,11 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         print(f"Root joint frame coordinate components: {frame_coords}")
 
         # Compute the transformation of the bone in the first frame.
-        pose_bone_mat4 = calc_frame_transform(offset_vec, frame_coords)
-        print(f"Pose root bone transformation matrix at frame 0: {pose_bone_mat4}")
+        pose_bone_euler = euler_from_components(frame_coords)
+        print(f"Pose root bone transformation matrix at frame 0: {pose_bone_euler}")
         
         # Store the calculated matrix into `TRANSFORMS`.
-        TRANSFORMS.append({'root': pose_bone_mat4})
+        append_transform('root', pose_bone_euler)
 
         # Create the Root Bone
         root_bone = edit_bones.new(root_data.get('name', 'root'))
@@ -340,15 +349,24 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         """" bla bla """
         global TRANSFORMS
 
-        armature = bpy.context.view_layer.objects.active
-
         # Switch to Edit Mode to create bones
         bpy.ops.object.mode_set(mode='POSE')
         print("Switched to Pose Mode")
 
         for transform in TRANSFORMS:
-            pose_bone = armature.pose.bones[[*transform][0]]
-            pose_bone.matrix = transform[pose_bone.name] @ pose_bone.matrix
+            pose_bone = bpy.context.object.pose.bones[transform['segment_name']]
+            
+            rotation_mode = pose_bone.rotation_mode
+            # print(f'Rotation mode: {rotation_mode}')
+
+            if rotation_mode == 'QUATERNION':
+                rotation_quaternion = Euler(transform['transform']).to_quaternion()
+                # print(f'Quaternion rotation: {rotation_quaternion}')
+                pose_bone.rotation_quaternion = rotation_quaternion
+            elif rotation_mode == 'EULER':
+                rotation_euler = Euler(transform['transform'])
+                # print(f'Euler rotation: {rotation_euler}')
+                pose_bone.rotation_euler = rotation_euler
 
 
 if __name__ == "__main__":
