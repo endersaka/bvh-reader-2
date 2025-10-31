@@ -8,6 +8,7 @@
 import enum
 import sys
 import os
+import traceback
 from typing import Sequence
 from math import radians
 from antlr4 import FileStream, CommonTokenStream
@@ -416,4 +417,5 @@ if __name__ == "__main__":
             print(f'TRANSFORMS: {TRANSFORMS}')
 
         except Exception as e:
-            print(f"Error while building Blender Armature: {str(e)}")
+            print("Traceback Info:")
+            traceback.print_exc()
