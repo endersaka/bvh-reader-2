@@ -189,8 +189,11 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         # `bpy.types.EditBone.head` is a `mathutils.Vector`, relative to
         # Armature Space. In Blender, the Head of a Bone represents its
         # rotation pivot.
-        edit_bone.head = parent_edit_bone.head + Vector(joint_data['offset'])
-        edit_bone.parent = edit_bones.get(parent_edit_bone.name)
+        edit_bone.parent = parent_edit_bone
+        if edit_bone.parent is None:
+            edit_bone.head = Vector(joint_data['offset'])
+        else:
+            edit_bone.head = edit_bone.parent.head + Vector(joint_data['offset'])
 
         # Determine bone's tail position
         children = joint_data.get('children')
