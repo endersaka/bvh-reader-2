@@ -9,6 +9,7 @@ import enum
 import sys
 import os
 import traceback
+from functools import reduce
 from typing import Sequence
 from math import radians
 from antlr4 import FileStream, CommonTokenStream
@@ -109,8 +110,11 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         """
         if points is None:
             return Vector((.0, .0, .1))
+        
+        mp = reduce(lambda v1, v2: v1 + v2, points) / len(points)
+        print(f'midpoint: {mp}')
 
-        return sum(points) / len(points)
+        return mp
 
     def bvh_to_blender_axis(components):
         """
