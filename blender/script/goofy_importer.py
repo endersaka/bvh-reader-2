@@ -222,13 +222,13 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         # frame 0.
         # NOTE: we use a counter to access per frame vector components,
         # we have to do so, until we change the frame data structure.
-        frame_coords = bvh_structure['motion']['motion_data'][0][node_frame_data_index]
+        #frame_coords = bvh_structure['motion']['motion_data'][0][node_frame_data_index]
 
         # Compute the transformation of the bone in the first frame.
-        pose_bone_euler = euler_from_components(frame_coords)
+        #pose_bone_euler = euler_from_components(frame_coords)
 
         # Store the calculated matrix into `TRANSFORMS`.
-        append_transform(bone_name, pose_bone_euler)
+        #append_transform(bone_name, pose_bone_euler)
 
         # Recursively traverse the hierarchy and create descendant bone
         for child_data in children:
@@ -241,79 +241,6 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                     edit_bone,
                     bvh_structure
                 )
-
-    def build_armature_from_bvh_dict(bvh_structure: dict):
-        """
-        Main function to initialize the Blender Armature and start the recursive build.
-        """
-
-        global node_frame_data_index, TRANSFORMS
-
-        # `bpy.types.ArmatureEditBones`: collection of `EditBone` objects.
-        edit_bones = create_armature()
-
-        # Root segment data
-        root_data = bvh_structure["hierarchy"]
-
-        #######################################################################
-        #   HERE BEGINS THE PART THAT IS NEARLY IDENTICAL IN `create_bones`   #
-        #######################################################################
-        #
-        # We assume that the BVH file follows a Y Up, -Z Forward convention,
-        # and convert accordingly.
-
-        # The set off coordinate components associated to root joint at
-        # frame 0.
-        # NOTE: we use a counter to access per frame vector components,
-        # we have to do so, until we change the frame data structure.
-        frame_coords = bvh_structure['motion']['motion_data'][0][node_frame_data_index]
-
-        # Compute the transformation of the bone in the first frame.
-        pose_bone_euler = euler_from_components(frame_coords)
-
-        # Store the calculated matrix into `TRANSFORMS`.
-        append_transform('root', pose_bone_euler)
-
-        # Create the `bpy.types.EditBone`.
-        root_bone = edit_bones.new(root_data.get('name', 'root'))
-
-        # `bpy.types.EditBone.head` is a `mathutils.Vector`, relative to
-        # Armature Space. In Blender, the Head of a Bone represents its
-        # rotation pivot.
-        root_bone.head = Vector(root_data["offset"])
-        root_bone.parent = None
-        print(f"Bone created: {root_bone.name} at {root_bone.head}")
-
-        # Determine bone's tail position
-        children = root_data.get('children')
-        if children is not None and len(children) > 0:
-            if len(children) == 1:
-                root_bone.tail = root_bone.head + Vector(children[0]["offset"])
-            
-            elif len(children) > 1:
-                root_bone.tail = root_bone.head + \
-                    compute_midpoint([child.head for child in children])
-
-        else:
-            # Small length along Z-axis (up)
-            root_bone.tail = root_bone.head + Vector((0.0, 0.0, 0.1))
-
-        # Recursively traverse the hierarchy and create descendant bones
-        for child_data in children:
-            # `End Site` blocks serve only as terminators of the hierarchy.
-            # Don't go further!
-            if child_data.get('name') != 'End Site':
-                create_bones(
-                    edit_bones,
-                    child_data,
-                    root_bone,
-                    bvh_structure
-                )
-
-        pose_armature()
-
-        # Switch back to Object Mode
-        bpy.ops.object.mode_set(mode='OBJECT')
 
     def create_armature():
         """ Create the armature, prepare the environment, and return a
@@ -414,6 +341,11 @@ if __name__ == "__main__":
                 None,
                 bvh_dict
             )
+
+            # pose_armature()
+
+            # Switch back to Object Mode
+            bpy.ops.object.mode_set(mode='OBJECT')
 
             # Import the BVH structure into Blender as an Armature
             # build_armature_from_bvh_dict(bvh_dict)
