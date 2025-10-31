@@ -153,7 +153,6 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         # Calculate the current joint's world head position
         head_vec = parent_edit_bone.head + blender_offset
 
-        # Create the new bone
         # Use the joint name, or a default if missing.
         bone_name = joint_name if joint_name else "Joint"
 
