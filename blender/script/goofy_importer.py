@@ -276,7 +276,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         # Armature Space.
         # In Blender, the Head of a Bone represents its rotation pivot.
         #print("BVH offset data of root joint: " + root_data["offset"])
-        offset_vec = bvh_to_blender_axis(Vector(root_data["offset"]))
+        offset_vec = Vector(root_data["offset"])
         print(f"Offset `mathutils.Vector` (in Blender coords system): {offset_vec}")
 
         # NOTE: we use a counter to access per frame vector components,
