@@ -224,10 +224,10 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         frame_coords = bvh_structure['motion']['motion_data'][0][node_frame_data_index]
 
         # Compute the transformation of the bone in the first frame.
-        # pose_bone_euler = euler_from_components(frame_coords)
+        pose_bone_euler = euler_from_components(frame_coords)
 
         # Store the calculated matrix into `TRANSFORMS`.
-        # append_transform(bone_name, pose_bone_euler)
+        append_transform(bone_name, pose_bone_euler)
 
         # Recursively traverse the hierarchy and create descendant bone
         for child_data in children:
