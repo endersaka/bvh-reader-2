@@ -156,12 +156,11 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             # End Sites do not become bones themselves
             return
 
-        # Offset is relative to the parent joint's head world position.
-        offset_vec = Vector(joint_data['offset'])
-        blender_offset = bvh_to_blender_coords(offset_vec)
-
-        # Calculate the current joint's world head position
-        head_vec = parent_edit_bone.head + blender_offset
+        # Offset components, as extracted by BVH file, represent a position
+        # relative to the parent joint position.
+        # Compute joint's head vector (which represent a armature space
+        # relative position)
+        head_vec = parent_edit_bone.head + Vector(joint_data['offset'])
 
         # Use the joint name, or a default if missing.
         bone_name = joint_name if joint_name else "Joint"
@@ -359,12 +358,14 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             rotation_mode = pose_bone.rotation_mode
             # print(f'Rotation mode: {rotation_mode}')
 
+            order = 'XZ-Y'
+
             if rotation_mode == 'QUATERNION':
-                rotation_quaternion = Euler(transform['transform']).to_quaternion()
+                rotation_quaternion = Euler(transform['transform'], order).to_quaternion()
                 # print(f'Quaternion rotation: {rotation_quaternion}')
                 pose_bone.rotation_quaternion = rotation_quaternion
             elif rotation_mode == 'EULER':
-                rotation_euler = Euler(transform['transform'])
+                rotation_euler = Euler(transform['transform'], order)
                 # print(f'Euler rotation: {rotation_euler}')
                 pose_bone.rotation_euler = rotation_euler
 
