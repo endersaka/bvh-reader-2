@@ -95,15 +95,14 @@ def append_transform(segment_name, transform):
 if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
     # FIXME: this funcion does nothing for the moment, MakeHuman community Asset Pack BVH files
     # seem to already be in Z-up coordinate system.
-    def bvh_to_blender_coords(bvh_offset: Vector) -> Vector:
+    def bvh_to_blender_axis(components):
         """
         Converts a BVH (X, Y, Z) offset vector to Blender's coordinate system
         (typically Z-up, Y-forward).
         A common transformation for BVH to Blender is (X, Y, Z) -> (X, Z, -Y).
         """
-        x, y, z = bvh_offset
-        # return Vector((x, z, -y))
-        return Vector((x, y, z))  # No conversion for now
+        x, y, z = components
+        return (x, z, -y)
 
     # NOTE: Possible function for applying the first frame's joint|root transform.
 
@@ -129,7 +128,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
         # This block is `PoseBone.rotation_mode` agnostic, so, all we can do is
         # calculating the euler rotation.
-        return Euler([radians(channel) for channel in rotation_components])
+        return Euler([radians(channel) for channel in bvh_to_blender_axis(rotation_components)])
 
     def create_bones(
         edit_bones: bpy.types.ArmatureEditBones,
@@ -193,7 +192,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
         if end_site_child:
             # Rule: "End Site" named nodes serve to place the bone tip of their parent node.
-            end_site_offset = bvh_to_blender_coords(
+            end_site_offset = bvh_to_blender_axis(
                 Vector(end_site_child["offset"]))
             new_bone.tail = head_vec + end_site_offset
 
@@ -205,7 +204,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             if first_child_joint:
                 # The tip is the world position (head) of the first child joint.
                 first_child_offset = Vector(first_child_joint["offset"])
-                blender_first_child_offset = bvh_to_blender_coords(
+                blender_first_child_offset = bvh_to_blender_axis(
                     first_child_offset)
                 new_bone.tail = head_vec + blender_first_child_offset
             else:
@@ -277,7 +276,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         # Armature Space.
         # In Blender, the Head of a Bone represents its rotation pivot.
         #print("BVH offset data of root joint: " + root_data["offset"])
-        offset_vec = bvh_to_blender_coords(Vector(root_data["offset"]))
+        offset_vec = bvh_to_blender_axis(Vector(root_data["offset"]))
         print(f"Offset `mathutils.Vector` (in Blender coords system): {offset_vec}")
 
         # NOTE: we use a counter to access per frame vector components,
@@ -312,7 +311,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             if first_child:
                 # NOTE: again, the possibly useless conversion.
                 root_bone.tail = offset_vec + \
-                    bvh_to_blender_coords(Vector(first_child["offset"]))
+                    bvh_to_blender_axis(Vector(first_child["offset"]))
             else:
                 # Fallback for a single-joint hierarchy
                 root_bone.tail = offset_vec + Vector((0.0, 0.0, 0.1))
@@ -358,16 +357,10 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             rotation_mode = pose_bone.rotation_mode
             # print(f'Rotation mode: {rotation_mode}')
 
-            order = 'XZ-Y'
-
             if rotation_mode == 'QUATERNION':
-                rotation_quaternion = Euler(transform['transform'], order).to_quaternion()
-                # print(f'Quaternion rotation: {rotation_quaternion}')
-                pose_bone.rotation_quaternion = rotation_quaternion
+                pose_bone.rotation_quaternion = transform['transform'].to_quaternion()
             elif rotation_mode == 'EULER':
-                rotation_euler = Euler(transform['transform'], order)
-                # print(f'Euler rotation: {rotation_euler}')
-                pose_bone.rotation_euler = rotation_euler
+                pose_bone.rotation_euler = transform['transform']
 
 
 if __name__ == "__main__":
