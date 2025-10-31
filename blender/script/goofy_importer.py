@@ -98,7 +98,7 @@ def append_transform(segment_name, transform):
 
 
 if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
-    def compute_midpoint(points: Sequence[Vector] | Sequence[Sequence[float]] | None) -> Vector:
+    def compute_midpoint(points: Sequence[Vector] | None) -> Vector:
         """ Compute the mid point of a sequence of `mathutils.Vector` objects
 
         Args:
@@ -207,7 +207,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
             elif len(children) > 1:
                 edit_bone.tail = edit_bone.head + \
-                    compute_midpoint([child.get('offset')
+                    compute_midpoint([Vector(child.get('offset'))
                                      for child in children])
 
         else:
