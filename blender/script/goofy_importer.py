@@ -80,7 +80,7 @@ except ImportError as e:
     print(f"Error importing Antlr files: {e}")
 
 
-node_frame_data_index = 0
+motion_data_segment_index = 0
 TRANSFORMS = []
 
 
@@ -125,17 +125,14 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         x, y, z = components
         return (x, z, -y)
 
-    # NOTE: Possible function for applying the first frame's joint|root transform.
-
     def euler_from_components(transform_components):
-        """ Calculate the transformation matrix for a joint/node/segment
+        """ Calculate Euler transformation given the rotations on the 3 axes
 
         Args:
-            node_world_position (mathutils.Vector): Vector rappresenting a position relative to World Space
-            node_frame_coordinates (list | tuple): list of float values that can have 3 or 6 elements 
+            transform_components (Sequence): Sequence of float values 
 
         Returns:
-            mathutils.Matrix: A 4x4 matrix carrying the result transformation
+            mathutils.Euler: rotation transformation
         """
 
         # TODO: we are not validating parameters.
@@ -149,7 +146,6 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
         # This block is `PoseBone.rotation_mode` agnostic, so, all we can do is
         # calculating the euler rotation.
-        # return Euler([radians(channel) for channel in bvh_to_blender_axis(rotation_components)])
         return Euler([radians(channel) for channel in rotation_components])
 
     def create_bones(
@@ -168,11 +164,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             parent_edit_bone (bpy.types.EditBone): parent EditBone
         """
 
-        global node_frame_data_index, TRANSFORMS
-
-        #######################################################################
-        # HERE BEGINS THE PART THAT IS NEARLY IDENTICAL IN `build_armature...`#
-        #######################################################################
+        global motion_data_segment_index, TRANSFORMS
 
         # Use the joint name, or a default if missing.
         bone_name = joint_data.get('name', 'bone')
@@ -185,17 +177,17 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                 i += 1
             bone_name = f'{bone_name}.{i:03d}'
 
-        # Create the `bpy.types.EditBone`.
+        # Create `bpy.types.EditBone`.
         edit_bone = edit_bones.new(bone_name)
 
-        # Offset components, as extracted by BVH file, represent a position
-        # relative to the parent joint position.
-        # Compute joint's head vector (which represent a armature space
-        # relative position)
-
-        # `bpy.types.EditBone.head` is a `mathutils.Vector`, relative to
-        # Armature Space. In Blender, the Head of a Bone represents its
-        # rotation pivot.
+        # Calculate and apply the bone head vector.
+        #
+        # Offset, as extracted by BVH file, is a triplet of float values
+        # recording the current joint position, relative to its parent
+        # position.
+        # `bpy.types.EditBone.head`, instead, is a `mathutils.Vector`,
+        # relative to Armature Space. A bone head, in Blender, is the
+        # bone's rotation pivot.
         edit_bone.parent = parent_edit_bone
         if edit_bone.parent is None:
             edit_bone.head = Vector(joint_data['offset'])
@@ -206,25 +198,31 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         # Determine bone's tail position
         children = joint_data.get('children')
         if children is not None and len(children) > 0:
+            # If the mapped segment has just one child, we place the
+            # bone's tail at the child segment offset. 
             if len(children) == 1:
                 edit_bone.tail = edit_bone.head + Vector(children[0]["offset"])
 
+            # It the mapped segment, instead, has more than one child,
+            # we compute the children midpoint and place the bone's
+            # tail at that location.
             elif len(children) > 1:
                 edit_bone.tail = edit_bone.head + \
                     compute_midpoint([Vector(child.get('offset'))
                                      for child in children])
-
+        # In case (theoretically non normative in BVH format, but:
+        # who knows?) that the segment has no child, we just offset
+        # the bone's tail a bit along Z.
         else:
-            # Add a small length along Z-axis (up)
             edit_bone.tail = edit_bone.head + Vector((0.0, 0.0, 0.1))
 
-        # The set off coordinate components associated to the joint at
-        # frame 0.
-        # NOTE: we use a counter to access per frame vector components,
-        # we have to do so, until we change the frame data structure.
-        frame_coords = bvh_structure['motion']['motion_data'][0][node_frame_data_index]
+        # Frame 0 coordinate components, associated to the current segment.
+        # NOTE: we use a counter, `motion_data_segment_index`, to access the
+        # coordinate components. We have to do so, until we change the
+        # frame data structure.
+        frame_coords = bvh_structure['motion']['motion_data'][0][motion_data_segment_index]
 
-        # Compute the transformation of the bone in the first frame.
+        # Compute the transformation from the motion data.
         pose_bone_euler = euler_from_components(frame_coords)
 
         # Store the calculated matrix into `TRANSFORMS`.
@@ -242,7 +240,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                     bvh_structure
                 )
 
-        node_frame_data_index += 1
+        motion_data_segment_index += 1
 
 
     def create_armature():
