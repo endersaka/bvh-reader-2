@@ -323,8 +323,6 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                 bvh_structure
             )
 
-        print(f"Store the pose bone transformation: {TRANSFORMS}")
-
         # Switch back to Object Mode
         bpy.ops.object.mode_set(mode='OBJECT')
         print(f"Successfully created Armature: {armature_object.name}")
