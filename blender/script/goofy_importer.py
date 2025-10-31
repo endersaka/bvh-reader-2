@@ -218,7 +218,8 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                 create_bones(
                     edit_bones,
                     child_data,
-                    new_bone
+                    new_bone,
+                    bvh_structure
                 )
 
     def pose_armature():
