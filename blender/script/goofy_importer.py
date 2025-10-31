@@ -273,7 +273,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.delete(use_global=False)
 
-    def pose_armature():
+    def pose_bones():
         """" bla bla """
         global TRANSFORMS
 
@@ -344,7 +344,7 @@ if __name__ == "__main__":
                 bvh_dict
             )
 
-            # pose_armature()
+            pose_bones()
 
             # Switch back to Object Mode
             bpy.ops.object.mode_set(mode='OBJECT')
