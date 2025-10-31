@@ -311,7 +311,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             if first_child:
                 # NOTE: again, the possibly useless conversion.
                 root_bone.tail = offset_vec + \
-                    bvh_to_blender_axis(Vector(first_child["offset"]))
+                    Vector(bvh_to_blender_axis(first_child["offset"]))
             else:
                 # Fallback for a single-joint hierarchy
                 root_bone.tail = offset_vec + Vector((0.0, 0.0, 0.1))
