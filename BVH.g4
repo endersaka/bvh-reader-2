@@ -1,12 +1,22 @@
 grammar BVH;
 
 /*
- Entry point: parse a full BVH file with HIERARCHY then MOTION. Usage (Python target): antlr4
- -Dlanguage=Python3 BVH.g4 python harness.py BVH bvh @Sit03Floor.txt --tree
+ * Entry Point
+ * 
+ * Parse a full BVH file with HIERARCHY and MOTION sections.
+ * 
+ *
+ * Usage (Python target):
+ * 
+ * antlr4 -Dlanguage=Python3 BVH.g4
+ * python harness.py Sit03Floor.bvh --tree
  */
 
 bvh: hierarchy motion EOF;
 
+/* 
+ * HIERARCHY section
+ */
 hierarchy: HIERARCHY root;
 
 root: ROOT identifier node;
@@ -33,19 +43,12 @@ offset: OFFSET number number number;
  */
 channels: CHANNELS INT channelType+;
 
-channelType:
-	Xposition
-	| Yposition
-	| Zposition
-	| Xrotation
-	| Yrotation
-	| Zrotation;
+channelType: Xposition | Yposition | Zposition | Xrotation | Yrotation | Zrotation;
 
 /* MOTION section: Frames line, Frame Time line, then one or more frame lines (space-separated
  numbers).
  */
-motion:
-	MOTION FRAMES COLON INT FRAME_TIME COLON number frameLine*;
+motion: MOTION FRAMES COLON INT FRAME_TIME COLON number frameLine*;
 
 frameLine: number+ NL?;
 
@@ -53,8 +56,7 @@ frameLine: number+ NL?;
 identifier: IDENT;
 
 /* Numbers: integers, decimals, scientific notation */
-number:
-	SIGN? (FLOAT | INT) EXP?; // e.g., -0.123, 42, 1.2e-3, -5E+2
+number: SIGN? (FLOAT | INT) EXP?; // e.g., -0.123, 42, 1.2e-3, -5E+2
 
 /* ---------------- Lexer rules ---------------- */
 
