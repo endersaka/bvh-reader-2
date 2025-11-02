@@ -286,6 +286,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         frame_data = motion.get('motion_data')[0]
 
         for segment_motion_data in frame_data:
+            print(f'segment_motion_data: {segment_motion_data}')
             segment_name = segment_motion_data.get('name')
             pose_bone = bpy.context.object.pose.bones[segment_name]
 
