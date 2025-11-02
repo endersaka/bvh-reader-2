@@ -10,6 +10,7 @@ import sys
 import os
 import traceback
 import logging
+import json
 from functools import reduce
 from typing import Sequence
 from math import radians
@@ -369,10 +370,9 @@ if __name__ == "__main__":
             # Switch back to Object Mode
             bpy.ops.object.mode_set(mode='OBJECT')
 
-            # Import the BVH structure into Blender as an Armature
-            # build_armature_from_bvh_dict(bvh_dict)
-            
-            logger.info('TRANSFORMS: ', extra=TRANSFORMS)
+            print(json.dumps(TRANSFORMS, indend=4))
+
+            # logger.info('TRANSFORMS: ', extra=TRANSFORMS)
 
         except Exception as e:
             print("Traceback Info:")
