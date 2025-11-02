@@ -379,9 +379,10 @@ if __name__ == "__main__":
             # Switch back to Object Mode
             bpy.ops.object.mode_set(mode='OBJECT')
 
-            print(json.dumps(TRANSFORMS, default=serialize_euler, indent=4))
+            transforms_json_str = json.dumps(TRANSFORMS, default=serialize_euler, indent=4)
+            #print(json_str)
 
-            # logger.info('TRANSFORMS: ', extra=TRANSFORMS)
+            logger.info('TRANSFORMS: ', extra=transforms_json_str)
 
         except Exception as e:
             print("Traceback Info:")
