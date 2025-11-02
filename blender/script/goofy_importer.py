@@ -165,6 +165,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
         # Create `bpy.types.EditBone`.
         edit_bone = edit_bones.new(bone_name)
+        print(f'Edit bone "{edit_bone.name}" created.')
 
         # Calculate and apply the bone head vector.
         #
@@ -202,6 +203,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         else:
             edit_bone.tail = edit_bone.head + Vector((0.0, 0.0, 0.1))
 
+        print(f'Bones count: {len(bones)}')
         # For use later in sandwich computation, rest pose matrix and inverse matrix.
         bone_rest_pose = bones[edit_bone.name].matrix_local.to_3x3()
         bone_rest_pose_inv = Matrix(bone_rest_pose).invert_safe()
