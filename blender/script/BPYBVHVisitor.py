@@ -156,6 +156,7 @@ class BPYBVHVisitor(BVHVisitor):
             # Append the current frame motion data to `motion_data` `List`
             motion_data.append(frame_motion_data)
         
+        print(f'motion_data: {motion_data}')
         return {"num_frames": num_frames, "frame_time": frame_time, "motion_data": motion_data}
 
     # implement other visit methods as needed
