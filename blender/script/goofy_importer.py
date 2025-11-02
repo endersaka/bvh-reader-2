@@ -283,7 +283,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         bpy.ops.object.mode_set(mode='POSE')
         print("Switched to Pose Mode")
 
-        frame_data = motion[0]
+        frame_data = motion.get('motion_data')[0]
 
         for segment_motion_data in frame_data:
             segment_name = segment_motion_data.get('name')
