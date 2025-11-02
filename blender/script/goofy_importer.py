@@ -297,7 +297,15 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(filename='goofy_importer.log', level=logging.NOTSET)
+    # I guess (I haven't found any enlightening documentation, to date) that
+    # the default base directory is set relative to the execution environment.
+    # In fact, Python outputs the following error:
+    # PermissionError: [Errno 13] Permission denied: 'D:\\Program Files\\Blender Foundation\\Blender 4.2\\goofy_importer.log'
+    # 'D:\\Program Files\\Blender Foundation\\Blender 4.2\\' is the location
+    # of my Blender executable.
+    # Therefore, I have to set a different location, which, for now, is set
+    # to the project root.
+    logging.basicConfig(filename=os.path.join(project_root, 'log', 'goofy_importer.log'), level=logging.NOTSET)
     logger.info('Logger Started')
 
     # Where to store the parsed BVH structure
