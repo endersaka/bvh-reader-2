@@ -297,6 +297,13 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
 
 if __name__ == "__main__":
+    # Apparently, the `FileHandler` automatically instanced by `basicConfig()`
+    # doesn't create missing directories in the `filename` parameter (another
+    # undocumented thing), therefore, we have to handle it.
+    log_dir = os.path.join(project_root, 'log')
+    # Create the directory, if it doesn't exist.
+    os.makedirs(log_dir, exist_ok=True)
+
     # I guess (I haven't found any enlightening documentation, to date) that
     # the default base directory is set relative to the execution environment.
     # In fact, Python outputs the following error:
@@ -305,7 +312,7 @@ if __name__ == "__main__":
     # of my Blender executable.
     # Therefore, I have to set a different location, which, for now, is set
     # to the project root.
-    logging.basicConfig(filename=os.path.join(project_root, 'log', 'goofy_importer.log'), level=logging.NOTSET)
+    logging.basicConfig(filename=os.path.join(log_dir, 'goofy_importer.log'), level=logging.NOTSET)
     logger.info('Logger Started')
 
     # Where to store the parsed BVH structure
