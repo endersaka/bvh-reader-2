@@ -9,10 +9,13 @@ import enum
 import sys
 import os
 import traceback
+import logging
 from functools import reduce
 from typing import Sequence
 from math import radians
 from antlr4 import FileStream, CommonTokenStream
+
+logger = logging.getLogger(__name__)
 
 
 class WorkingEnvironment(enum.Enum):
@@ -294,6 +297,9 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(filename='goofy_importer.log', level=logging.NOTSET)
+    logger.info('Logger Started')
+
     # Where to store the parsed BVH structure
     bvh_dict = None  # pylint: disable=invalid-name
 
@@ -351,8 +357,10 @@ if __name__ == "__main__":
             # Import the BVH structure into Blender as an Armature
             # build_armature_from_bvh_dict(bvh_dict)
             
-            print(f'TRANSFORMS: {TRANSFORMS}')
+            logger.info('TRANSFORMS: ', extra=TRANSFORMS)
 
         except Exception as e:
             print("Traceback Info:")
             traceback.print_exc()
+
+    logger.info('Logger Stopped')
