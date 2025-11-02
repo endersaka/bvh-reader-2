@@ -86,6 +86,27 @@ except ImportError as e:
 if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
     REST_POSE = []
 
+    def get_rest_poses(armature_data):
+        """ Bla, bla, bla... """
+        bpy.ops.object.mode_set(mode='OBJECT')
+        print("Switched to Object Mode")
+
+        bones = armature_data.bones
+
+        print(f'Bones count: {len(bones)}')
+        
+        for bone in bones:
+            # For use later in sandwich computation, rest pose matrix and inverse matrix.
+            bone_rest_pose = bone.matrix_local.to_3x3()
+            bone_rest_pose_inv = Matrix(bone_rest_pose).invert_safe()
+
+            # Append the results to `REST_POSE`.
+            REST_POSE.append({
+                'name': bone.name,
+                'rest_pose': bone_rest_pose.resize_4x4(),
+                'rest_pose_inv': bone_rest_pose_inv.resize_4x4()
+            })
+
     def compute_midpoint(points: Sequence[Vector] | None) -> Vector:
         """ Compute the mid point of a sequence of `mathutils.Vector` objects
 
@@ -203,20 +224,6 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         # the bone's tail a bit along Z.
         else:
             edit_bone.tail = edit_bone.head + Vector((0.0, 0.0, 0.1))
-
-        bones = armature_data.bones
-
-        print(f'Bones count: {len(bones)}')
-        # For use later in sandwich computation, rest pose matrix and inverse matrix.
-        bone_rest_pose = bones[edit_bone.name].matrix_local.to_3x3()
-        bone_rest_pose_inv = Matrix(bone_rest_pose).invert_safe()
-
-        # Append the results to `REST_POSE`.
-        REST_POSE.append({
-            'name': edit_bone.name,
-            'rest_pose': bone_rest_pose.resize_4x4(),
-            'rest_pose_inv': bone_rest_pose_inv.resize_4x4()
-        })
 
         # Recursively traverse the hierarchy and create descendant bone
         for child_data in children:
@@ -378,6 +385,8 @@ if __name__ == "__main__":
                 None,
                 bvh
             )
+
+            get_rest_poses(armature_data)
 
             pose_bones(bvh.get('motion'))
 
