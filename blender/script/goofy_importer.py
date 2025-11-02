@@ -370,7 +370,7 @@ if __name__ == "__main__":
             # Switch back to Object Mode
             bpy.ops.object.mode_set(mode='OBJECT')
 
-            print(json.dumps(TRANSFORMS, indend=4))
+            print(json.dumps(TRANSFORMS, indent=4))
 
             # logger.info('TRANSFORMS: ', extra=TRANSFORMS)
 
