@@ -296,6 +296,15 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             elif rotation_mode == 'EULER':
                 pose_bone.rotation_euler = transform['transform']
 
+def serialize_euler(obj):
+    """ Bla, bla, bla, ... """
+    if isinstance(obj, Euler):
+        return {
+            'x_rot': obj.x,
+            'y_rot': obj.y,
+            'z_rot': obj.z
+        }
+    raise TypeError(f'Cannot serialize object of {type(obj)}')
 
 if __name__ == "__main__":
     # Apparently, the `FileHandler` automatically instanced by `basicConfig()`
@@ -370,7 +379,7 @@ if __name__ == "__main__":
             # Switch back to Object Mode
             bpy.ops.object.mode_set(mode='OBJECT')
 
-            print(json.dumps(TRANSFORMS, default=lambda o: o.__dict__, indent=4))
+            print(json.dumps(TRANSFORMS, default=serialize_euler, indent=4))
 
             # logger.info('TRANSFORMS: ', extra=TRANSFORMS)
 
