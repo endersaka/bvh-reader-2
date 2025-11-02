@@ -83,7 +83,7 @@ try:
 except ImportError as e:
     print(f"Error importing Antlr files: {e}")
 
-
+# TODO: these variables are not anymore needed.
 motion_data_segment_index = 0
 TRANSFORMS = []
 
@@ -276,26 +276,37 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.delete(use_global=False)
 
-    def pose_bones():
+    def pose_bones(motion):
         """" bla bla """
-        global TRANSFORMS
 
         # Switch to Edit Mode to create bones
         bpy.ops.object.mode_set(mode='POSE')
         print("Switched to Pose Mode")
 
-        for transform in TRANSFORMS:
-            pose_bone = bpy.context.object.pose.bones[transform['segment_name']]
+        frame_data = motion[0]
 
+        for segment_motion_data in frame_data:
+            segment_name = segment_motion_data.get('name')
+            pose_bone = bpy.context.object.pose.bones[segment_name]
+
+            # Get bone rotation mode. 
             rotation_mode = pose_bone.rotation_mode
             # print(f'Rotation mode: {rotation_mode}')
 
-            if rotation_mode == 'QUATERNION':
-                pose_bone.rotation_quaternion = transform['transform'].to_quaternion(
-                )
-            elif rotation_mode == 'EULER':
-                pose_bone.rotation_euler = transform['transform']
+            components = (
+                radians(segment_motion_data.get('Xrotation')),
+                radians(segment_motion_data.get('Yrotation')),
+                radians(segment_motion_data.get('Zrotation'))
+            )
+            euler = Euler(components)
 
+            if rotation_mode == 'QUATERNION':
+                pose_bone.rotation_quaternion = euler.to_quaternion()
+            elif rotation_mode == 'EULER':
+                pose_bone.rotation_euler = euler
+
+# TODO: check at https://docs.blender.org/api/4.2/mathutils.html#mathutils.Euler,
+# there is a simpler example using `format()`.
 def serialize_euler(obj):
     """ Bla, bla, bla, ... """
     if isinstance(obj, Euler):
@@ -374,7 +385,7 @@ if __name__ == "__main__":
                 bvh_dict
             )
 
-            pose_bones()
+            pose_bones(bvh_dict.get('motion'))
 
             # Switch back to Object Mode
             bpy.ops.object.mode_set(mode='OBJECT')
