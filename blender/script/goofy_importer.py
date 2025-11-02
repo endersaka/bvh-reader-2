@@ -83,25 +83,6 @@ try:
 except ImportError as e:
     print(f"Error importing Antlr files: {e}")
 
-# TODO: these variables are not anymore needed.
-motion_data_segment_index = 0
-TRANSFORMS = []
-
-
-def append_transform(segment_name, transform):
-    """ Convenience function to append new transforms to `TRANSFORMS` list, as
-        a more structured data.
-
-    Args:
-        segment_name (String): the name of the `JOINT` or `ROOT` segment
-        transform (mathutils.Euler | mathutils.Quaternion | mathutils.Matrix): transformation
-    """
-    TRANSFORMS.append({
-        'segment_name': segment_name,
-        'transform': transform
-    })
-
-
 if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
     def compute_midpoint(points: Sequence[Vector] | None) -> Vector:
         """ Compute the mid point of a sequence of `mathutils.Vector` objects
@@ -168,8 +149,6 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             parent_edit_bone (bpy.types.EditBone): parent EditBone
         """
 
-        global motion_data_segment_index, TRANSFORMS
-
         # Use the joint name, or a default if missing.
         bone_name = joint_data.get('name', 'bone')
 
@@ -220,18 +199,6 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         else:
             edit_bone.tail = edit_bone.head + Vector((0.0, 0.0, 0.1))
 
-        # Frame 0 coordinate components, associated to the current segment.
-        # NOTE: we use a counter, `motion_data_segment_index`, to access the
-        # coordinate components. We have to do so, until we change the
-        # frame data structure.
-        frame_coords = bvh_structure['motion']['motion_data'][0][motion_data_segment_index]
-
-        # Compute the transformation from the motion data.
-        pose_bone_euler = euler_from_components(frame_coords)
-
-        # Store the calculated matrix into `TRANSFORMS`.
-        append_transform(bone_name, pose_bone_euler)
-
         # Recursively traverse the hierarchy and create descendant bone
         for child_data in children:
             # `End Site` blocks serve only as terminators of the hierarchy.
@@ -243,9 +210,6 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                     edit_bone,
                     bvh_structure
                 )
-
-        motion_data_segment_index += 1
-
 
     def create_armature():
         """ Create the armature, prepare the environment, and return a
@@ -391,11 +355,6 @@ if __name__ == "__main__":
 
             # Switch back to Object Mode
             bpy.ops.object.mode_set(mode='OBJECT')
-
-            transforms_json_str = json.dumps(TRANSFORMS, default=serialize_euler, indent=4)
-            #print(json_str)
-
-            logger.info('TRANSFORMS: %s', transforms_json_str)
 
         except Exception as e:
             print("Traceback Info:")
