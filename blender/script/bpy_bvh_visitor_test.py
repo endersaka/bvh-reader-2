@@ -58,6 +58,8 @@ def main(argv):
 
         v = BPYBVHVisitor()
         data = v.visit(tree)
+
+        print(f'motion_data {data.get('motion').get('motion_data')}')
         
         # Write the data to a JSON file
         with open("tree.json", mode="w", encoding="utf-8") as tree_json_file:

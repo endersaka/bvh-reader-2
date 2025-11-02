@@ -284,6 +284,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         print("Switched to Pose Mode")
 
         frame_data = motion.get('motion_data')[0]
+        print(f'frame_motion_data: {frame_data}')
 
         for segment_motion_data in frame_data:
             print(f'segment_motion_data: {segment_motion_data}')
