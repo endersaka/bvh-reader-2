@@ -382,7 +382,7 @@ if __name__ == "__main__":
             transforms_json_str = json.dumps(TRANSFORMS, default=serialize_euler, indent=4)
             #print(json_str)
 
-            logger.info('TRANSFORMS: ', extra=transforms_json_str)
+            logger.info('TRANSFORMS: %s', transforms_json_str)
 
         except Exception as e:
             print("Traceback Info:")
