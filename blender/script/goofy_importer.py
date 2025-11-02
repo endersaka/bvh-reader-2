@@ -136,8 +136,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         return Euler([radians(channel) for channel in rotation_components])
 
     def create_bones(
-        bones: bpy.types.ArmatureBones,
-        edit_bones: bpy.types.ArmatureEditBones,
+        armature_data,
         segment_data: dict,
         parent_edit_bone: bpy.types.EditBone,
         bvh: dict
@@ -151,6 +150,8 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             joint_data (dict): joint data dictionary from BVH
             parent_edit_bone (bpy.types.EditBone): parent EditBone
         """
+
+        edit_bones = armature_data.edit_bones
 
         # Use the joint name, or a default if missing.
         bone_name = segment_data.get('name', 'bone')
@@ -203,6 +204,8 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         else:
             edit_bone.tail = edit_bone.head + Vector((0.0, 0.0, 0.1))
 
+        bones = armature_data.bones
+
         print(f'Bones count: {len(bones)}')
         # For use later in sandwich computation, rest pose matrix and inverse matrix.
         bone_rest_pose = bones[edit_bone.name].matrix_local.to_3x3()
@@ -221,8 +224,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             # Don't go further!
             if child_data.get('name') != 'End Site':
                 create_bones(
-                    bones,
-                    edit_bones,
+                    armature_data,
                     child_data,
                     edit_bone,
                     bvh
@@ -368,12 +370,10 @@ if __name__ == "__main__":
 
             armature_data = create_armature()
             # `bpy.types.ArmatureEditBones`: collection of `EditBone` objects.
-            edit_bones = armature_data.edit_bones
-            bones = armature_data.bones
+            
 
             create_bones(
-                bones,
-                edit_bones,
+                armature_data,
                 bvh.get('hierarchy'),
                 None,
                 bvh
