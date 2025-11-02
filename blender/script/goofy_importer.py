@@ -30,7 +30,7 @@ WORKINGENVIRONMENT = WorkingEnvironment.STANDALONE
 # Determine the working environment
 try:
     import bpy
-    from mathutils import Vector, Euler
+    from mathutils import Vector, Euler, Matrix
 
     print("Running inside Blender")
     WORKINGENVIRONMENT = WorkingEnvironment.BLENDER
@@ -84,6 +84,8 @@ except ImportError as e:
     print(f"Error importing Antlr files: {e}")
 
 if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
+    REST_POSE = []
+
     def compute_midpoint(points: Sequence[Vector] | None) -> Vector:
         """ Compute the mid point of a sequence of `mathutils.Vector` objects
 
@@ -134,10 +136,11 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         return Euler([radians(channel) for channel in rotation_components])
 
     def create_bones(
+        bones: bpy.types.ArmatureBones,
         edit_bones: bpy.types.ArmatureEditBones,
-        joint_data: dict,
+        segment_data: dict,
         parent_edit_bone: bpy.types.EditBone,
-        bvh_structure: dict
+        bvh: dict
     ):
         """Recursively creates a bone for the current joint, setting
         its head, parent, and then determining its tip based on
@@ -150,7 +153,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         """
 
         # Use the joint name, or a default if missing.
-        bone_name = joint_data.get('name', 'bone')
+        bone_name = segment_data.get('name', 'bone')
 
         # Handle duplicate names by incrementing if necessary
         if bone_name in edit_bones:
@@ -173,13 +176,13 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         # bone's rotation pivot.
         edit_bone.parent = parent_edit_bone
         if edit_bone.parent is None:
-            edit_bone.head = Vector(joint_data['offset'])
+            edit_bone.head = Vector(segment_data['offset'])
         else:
             edit_bone.head = edit_bone.parent.head + \
-                Vector(joint_data['offset'])
+                Vector(segment_data['offset'])
 
         # Determine bone's tail position
-        children = joint_data.get('children')
+        children = segment_data.get('children')
         if children is not None and len(children) > 0:
             # If the mapped segment has just one child, we place the
             # bone's tail at the child segment offset. 
@@ -199,19 +202,31 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         else:
             edit_bone.tail = edit_bone.head + Vector((0.0, 0.0, 0.1))
 
+        # For use later in sandwich computation, rest pose matrix and inverse matrix.
+        bone_rest_pose = bones[edit_bone.name].matrix_local.to_3x3()
+        bone_rest_pose_inv = Matrix(bone_rest_pose).invert_safe()
+
+        # Append the results to `REST_POSE`.
+        REST_POSE.append({
+            'name': edit_bone.name,
+            'rest_pose': bone_rest_pose.resize_4x4(),
+            'rest_pose_inv': bone_rest_pose_inv.resize_4x4()
+        })
+
         # Recursively traverse the hierarchy and create descendant bone
         for child_data in children:
             # `End Site` blocks serve only as terminators of the hierarchy.
             # Don't go further!
             if child_data.get('name') != 'End Site':
                 create_bones(
+                    bones,
                     edit_bones,
                     child_data,
                     edit_bone,
-                    bvh_structure
+                    bvh
                 )
 
-    def create_armature():
+    def create_armature() -> bpy.types.Armature:
         """ Create the armature, prepare the environment, and return a
             `bpy.types.ArmatureEditBones` collection ready for bones editing.
         """
@@ -228,7 +243,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         bpy.ops.object.mode_set(mode='EDIT')
         print("Switched to Edit Mode")
 
-        return armature_data.edit_bones
+        return armature_data
 
     def init_blender_scene():
         """ Initialize the Blender scene for Armature building. """
@@ -255,21 +270,29 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             segment_name = segment_motion_data.get('name')
             pose_bone = bpy.context.object.pose.bones[segment_name]
 
-            # Get bone rotation mode. 
-            rotation_mode = pose_bone.rotation_mode
-            # print(f'Rotation mode: {rotation_mode}')
-
             components = (
                 radians(segment_motion_data.get('Xrotation')),
                 radians(segment_motion_data.get('Yrotation')),
                 radians(segment_motion_data.get('Zrotation'))
             )
-            euler = Euler(components)
 
+            bone_rest_pose_data = [b for b in REST_POSE if b.get('name') == segment_name]
+            bone_rest_pose_mat4 = bone_rest_pose_data.get('rest_pose')
+            bone_rest_pose_inv_mat4 = bone_rest_pose_data.get('rest_pose_inv')
+            euler = Euler(components, 'ZXY')
+            # sandwich
+            bone_rotation_mat4 = (
+                bone_rest_pose_inv_mat4 @
+                euler.to_matrix().to_4x4() @
+                bone_rest_pose_mat4
+            )
+
+            # Get bone rotation mode and apply transform accordingly.
+            rotation_mode = pose_bone.rotation_mode
             if rotation_mode == 'QUATERNION':
-                pose_bone.rotation_quaternion = euler.to_quaternion()
+                pose_bone.rotation_quaternion = bone_rotation_mat4.to_quaternion()
             elif rotation_mode == 'EULER':
-                pose_bone.rotation_euler = euler
+                pose_bone.rotation_euler = bone_rotation_mat4.to_euler(order='ZXY')
 
 # TODO: check at https://docs.blender.org/api/4.2/mathutils.html#mathutils.Euler,
 # there is a simpler example using `format()`.
@@ -303,7 +326,7 @@ if __name__ == "__main__":
     logger.info('Logger Started')
 
     # Where to store the parsed BVH structure
-    bvh_dict = None  # pylint: disable=invalid-name
+    bvh = None  # pylint: disable=invalid-name
 
     # Get BVH file path
     bvh_filepath = os.path.join(project_root, 'test.bvh')
@@ -327,7 +350,7 @@ if __name__ == "__main__":
         # print(tree.toStringTree(recog=parser))
 
         v = BPYBVHVisitor()
-        bvh_dict = v.visit(tree)
+        bvh = v.visit(tree)
 
         print(f"Total visited nodes: {v.nodes_count}")
 
@@ -341,17 +364,20 @@ if __name__ == "__main__":
         try:
             init_blender_scene()
 
+            armature_data = create_armature()
             # `bpy.types.ArmatureEditBones`: collection of `EditBone` objects.
-            edit_bones = create_armature()
+            edit_bones = armature_data.edit_bones
+            bones = armature_data.bones
 
             create_bones(
+                bones,
                 edit_bones,
-                bvh_dict.get('hierarchy'),
+                bvh.get('hierarchy'),
                 None,
-                bvh_dict
+                bvh
             )
 
-            pose_bones(bvh_dict.get('motion'))
+            pose_bones(bvh.get('motion'))
 
             # Switch back to Object Mode
             bpy.ops.object.mode_set(mode='OBJECT')
