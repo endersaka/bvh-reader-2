@@ -272,42 +272,55 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.delete(use_global=False)
 
+    # NOTE: this utility function could eventually switch to 'POSE' mode, if needed.
+    def get_pose_bone_by_name(pose_bone_name):
+        """ Get pose bone by name """
+        return bpy.context.object.pose.bones[pose_bone_name]
+
     def pose_bones(motion):
         """ Pose bones. """
 
         switch_mode('POSE')
 
-        frame_data = motion.get('motion_data')[0]
-        print(f'frame_motion_data: {frame_data}')
+        # Even if, unlikely, `motion_data` could be `None`.
+        motion_data = motion.get('motion_data')
+        if motion_data is not None:
+            frame_data = motion_data[0]
 
-        for segment_motion_data in frame_data:
-            print(f'segment_motion_data: {segment_motion_data}')
-            segment_name = segment_motion_data.get('name')
-            pose_bone = bpy.context.object.pose.bones[segment_name]
+            for segment_motion_data in frame_data:
+                segment_name = segment_motion_data.get('name')
+                pose_bone = get_pose_bone_by_name(segment_name)
 
-            components = (
-                radians(segment_motion_data.get('Xrotation')),
-                radians(segment_motion_data.get('Yrotation')),
-                radians(segment_motion_data.get('Zrotation'))
-            )
+                # TODO: if we make also the hierarchy accessible we can retrive this data
+                # automatically and perform verification and sanification checks.
+                segment_channel_names = ('Xrotation', 'Yrotation', 'Zrotation')
+                components = [radians(segment_motion_data.get(channel_name)) for channel_name in segment_channel_names]
 
-            bone_rest_pose_data = [b for b in REST_POSE if b.get('name') == segment_name]
-            bone_rest_pose_mat4 = bone_rest_pose_data.get('rest_pose')
-            bone_rest_pose_inv_mat4 = bone_rest_pose_data.get('rest_pose_inv')
-            euler = Euler(components, 'ZXY')
-            # sandwich
-            bone_rotation_mat4 = (
-                bone_rest_pose_inv_mat4 @
-                euler.to_matrix().to_4x4() @
-                bone_rest_pose_mat4
-            )
 
-            # Get bone rotation mode and apply transform accordingly.
-            rotation_mode = pose_bone.rotation_mode
-            if rotation_mode == 'QUATERNION':
-                pose_bone.rotation_quaternion = bone_rotation_mat4.to_quaternion()
-            elif rotation_mode == 'EULER':
-                pose_bone.rotation_euler = bone_rotation_mat4.to_euler(order='ZXY')
+                bone_rest_pose_data = next((b for b in REST_POSE if b.get('name') == segment_name), None)
+                if bone_rest_pose_data is not None:
+                    bone_rest_pose_mat4 = bone_rest_pose_data.get('rest_pose')
+                    bone_rest_pose_inv_mat4 = bone_rest_pose_data.get('rest_pose_inv')
+
+                    
+                    rotation_mode_bak = pose_bone.rotation_mode
+                    rotation_mode_cfg = ''.join([axis[0:1] for axis in segment_channel_names])[::-1]
+                    euler = Euler(components, rotation_mode_cfg)
+                    # # sandwich
+                    # bone_rotation_mat4 = (
+                    #     bone_rest_pose_inv_mat4 @
+                    #     euler.to_matrix().to_4x4() @
+                    #     bone_rest_pose_mat4
+                    # )
+
+                    pose_bone.rotation_mode = rotation_mode_cfg
+                    # Get bone rotation mode and apply transform accordingly.
+                    # if rotation_mode_bak == 'QUATERNION':
+                    #     pose_bone.rotation_quaternion = bone_rotation_mat4.to_quaternion()
+                    # elif rotation_mode_bak == 'EULER':
+                    pose_bone.rotation_euler = euler
+
+                    pose_bone.rotation_mode = rotation_mode_bak
 
 # TODO: check at https://docs.blender.org/api/4.2/mathutils.html#mathutils.Euler,
 # there is a simpler example using `format()`.
