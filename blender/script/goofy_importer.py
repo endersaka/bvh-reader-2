@@ -10,7 +10,6 @@ import sys
 import os
 import traceback
 import logging
-import json
 from functools import reduce
 from typing import Sequence
 from math import radians
@@ -31,14 +30,13 @@ WORKINGENVIRONMENT = WorkingEnvironment.STANDALONE
 try:
     import bpy
     from mathutils import Vector, Euler, Matrix
-
     print("Running inside Blender")
     WORKINGENVIRONMENT = WorkingEnvironment.BLENDER
 except ImportError:
     print("Running outside Blender")
 
 CONTEXTSYSPATHS = []
-script_dir = ''
+SCRIPT_DIR = ''
 
 if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
     # Get the current script being executed
@@ -46,7 +44,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
     if text.filepath:
         # If the script is saved, retrieve its directory
-        script_dir = os.path.dirname(bpy.path.abspath(text.filepath))
+        SCRIPT_DIR = os.path.dirname(bpy.path.abspath(text.filepath))
     else:
         print("The script is not saved. Please save it to retrieve the directory.")
         exit(1)
@@ -57,34 +55,38 @@ elif WORKINGENVIRONMENT == WorkingEnvironment.STANDALONE:
     # FIXME: this is going to fail in Blender, if we just open the script from the Text Editor,
     # since __file__ is not defined there. We need to find another way to get the project root
     # in that case, perhaps by using bpy.path or similar Blender-specific APIs.
-    script_dir = os.path.dirname(os.path.realpath(__file__))
+    SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
-print("Script Directory:", script_dir)
+print("Script Directory:", SCRIPT_DIR)
 
-project_root = os.path.join(script_dir, '..', '..')
-print("Project root:", project_root)
+PROJECT_ROOT = os.path.join(SCRIPT_DIR, '..', '..')
+print("Project root:", PROJECT_ROOT)
 
-CONTEXTSYSPATHS.append(script_dir)
-CONTEXTSYSPATHS.append(project_root)
+CONTEXTSYSPATHS.append(SCRIPT_DIR)
+CONTEXTSYSPATHS.append(PROJECT_ROOT)
 
 # Add all the gathered paths to sys.path if not already present.
 for path in CONTEXTSYSPATHS:
     if path not in sys.path:
         sys.path.append(path)
 
-# Now you can import your Antlr files as if you were in the root
-# Assuming your Antlr files are MyGrammarLexer.py, MyGrammarParser.py, etc.
+# Now we can import Antlr modules as if we were in the project root.
 try:
     from BVHParser import BVHParser
     from BVHLexer import BVHLexer
     from BPYBVHVisitor import BPYBVHVisitor
-
-    print("Successfully imported Antlr files!")
+    print("Successfully imported Antlr modules!")
 except ImportError as e:
-    print(f"Error importing Antlr files: {e}")
+    print(f"Error importing Antlr modules: {e}")
 
 if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
     REST_POSE = []
+
+    def switch_mode(mode):
+        """ Switch to selected `mode` (see https://docs.blender.org/api/4.2/bpy_types_enum_items/object_mode_items.html#rna-enum-object-mode-items) """
+        bpy.ops.object.mode_set(mode=mode)
+        
+        print(f'Switched to {bpy.context.active_object.mode} Mode')
 
     def get_rest_poses(armature_data):
         """ Bla, bla, bla... """
@@ -98,7 +100,11 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         for bone in bones:
             # For use later in sandwich computation, rest pose matrix and inverse matrix.
             bone_rest_pose = bone.matrix_local.to_3x3()
-            bone_rest_pose_inv = Matrix(bone_rest_pose).invert_safe()
+            bone_rest_pose_inv = Matrix(bone_rest_pose)
+            bone_rest_pose_inv.invert_safe()
+
+            print(f'bone_rest_pose: {bone_rest_pose}')
+            print(f'bone_rest_pose_inv: {bone_rest_pose_inv}')
 
             # Append the results to `REST_POSE`.
             REST_POSE.append({
@@ -256,7 +262,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
         return armature_data
 
-    def init_blender_scene():
+    def init_blender_context():
         """ Initialize the Blender scene for Armature building. """
         # Clear any selection and ensure we are in a mode that allows object creation
         if bpy.context.object and bpy.context.object.mode != 'OBJECT':
@@ -267,11 +273,9 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         bpy.ops.object.delete(use_global=False)
 
     def pose_bones(motion):
-        """" bla bla """
+        """ Pose bones. """
 
-        # Switch to Edit Mode to create bones
-        bpy.ops.object.mode_set(mode='POSE')
-        print("Switched to Pose Mode")
+        switch_mode('POSE')
 
         frame_data = motion.get('motion_data')[0]
         print(f'frame_motion_data: {frame_data}')
@@ -317,32 +321,80 @@ def serialize_euler(obj):
         }
     raise TypeError(f'Cannot serialize object of {type(obj)}')
 
-if __name__ == "__main__":
-    # Apparently, the `FileHandler` automatically instanced by `basicConfig()`
-    # doesn't create missing directories in the `filename` parameter (another
-    # undocumented thing), therefore, we have to handle it.
-    log_dir = os.path.join(project_root, 'log')
+def init_logging():
+    """
+    The `init_logging` function initializes logging in Python by creating a log directory and setting up
+    a log file with a specific filename.
+    """
+
+    # The `FileHandler` instanced by `basicConfig()` doesn't create missing
+    # directories, passed in the `filename` parameter (undocumented).
+    log_dir = os.path.join(PROJECT_ROOT, 'log')
+    
     # Create the directory, if it doesn't exist.
     os.makedirs(log_dir, exist_ok=True)
 
-    # I guess (I haven't found any enlightening documentation, to date) that
-    # the default base directory is set relative to the execution environment.
-    # In fact, Python outputs the following error:
+    # The base directory is relative to the execution environment
+    # (undocumented?).
+    # In fact, Python outputs:
     # PermissionError: [Errno 13] Permission denied: 'D:\\Program Files\\Blender Foundation\\Blender 4.2\\goofy_importer.log'
     # 'D:\\Program Files\\Blender Foundation\\Blender 4.2\\' is the location
-    # of my Blender executable.
-    # Therefore, I have to set a different location, which, for now, is set
-    # to the project root.
+    # of my local Blender executable.
+    # I have to set a different location, which, for now, is set to the project root.
     logging.basicConfig(filename=os.path.join(log_dir, 'goofy_importer.log'), level=logging.NOTSET)
     logger.info('Logger Started')
 
-    # Where to store the parsed BVH structure
-    bvh = None  # pylint: disable=invalid-name
+def import_bvh(bvh):
+    """
+    The `import_bvh` function imports a BVH file into Blender, creates an armature, sets bone hierarchy,
+    retrieves rest poses, and poses the bones based on motion data.
+    
+    :param bvh: The `bvh` parameter in the `import_bvh` function is expected to be a BVH (Biovision
+    Hierarchy) file data that contains information about a skeleton's hierarchy and motion data. This
+    function is designed to import this BVH data into Blender to create an armature and pose
+    """
+    if bvh is not None:
+        try:
+            init_blender_context()
 
-    # Get BVH file path
-    bvh_filepath = os.path.join(project_root, 'test.bvh')
+            armature_data = create_armature()
 
-    # Parse the BVH file
+            create_bones(
+                    armature_data,
+                    bvh.get('hierarchy'),
+                    None,
+                    bvh
+                )
+
+            get_rest_poses(armature_data)
+
+            pose_bones(bvh.get('motion'))
+
+                # Switch back to Object Mode
+            bpy.ops.object.mode_set(mode='OBJECT')
+
+        except Exception as e:
+            print("Traceback Info:")
+            traceback.print_exc()
+    
+    else:
+        logger.info('Invalid BVH file.')
+
+
+def read_bvh(bvh_filepath):
+    """
+    The `read_bvh` function reads and parses a BVH file using a lexer, parser, and visitor in Python.
+    
+    :param bvh_filepath: The `bvh_filepath` parameter in the `read_bvh` function is a string that
+    represents the file path to the BVH (Biovision Hierarchy) file that you want to parse and read. This
+    function reads the contents of the BVH file, parses it using a lexer and parser
+    :return: The `read_bvh` function returns the parsed BVH (Biovision Hierarchy) data structure
+    obtained from the input BVH file specified by the `bvh_filepath`. If the parsing is successful, the
+    function returns the parsed BVH structure. If an error occurs during parsing, an error message is
+    printed, and `None` is returned.
+    """
+    bvh = None
+
     try:
         # Create an input stream from filepath
         input_stream = FileStream(bvh_filepath)
@@ -357,9 +409,6 @@ if __name__ == "__main__":
         # Parse the BVH file, beginning from the `bvh` rule, defined in the grammar `./BVH.g4`
         tree = parser.bvh()
 
-        # Log the parse tree (for debugging)
-        # print(tree.toStringTree(recog=parser))
-
         v = BPYBVHVisitor()
         bvh = v.visit(tree)
 
@@ -370,31 +419,16 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Error while parsing: {str(e)}")
 
+    return bvh
+
+if __name__ == "__main__":
+    init_logging()
+
+    # Parse the BVH file
+    bvh = read_bvh(os.path.join(PROJECT_ROOT, 'test.bvh'))
+
     # Build the Blender Armature if in Blender environment
     if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
-        try:
-            init_blender_scene()
-
-            armature_data = create_armature()
-            # `bpy.types.ArmatureEditBones`: collection of `EditBone` objects.
-            
-
-            create_bones(
-                armature_data,
-                bvh.get('hierarchy'),
-                None,
-                bvh
-            )
-
-            get_rest_poses(armature_data)
-
-            pose_bones(bvh.get('motion'))
-
-            # Switch back to Object Mode
-            bpy.ops.object.mode_set(mode='OBJECT')
-
-        except Exception as e:
-            print("Traceback Info:")
-            traceback.print_exc()
+        import_bvh(bvh)
 
     logger.info('Logger Stopped')
