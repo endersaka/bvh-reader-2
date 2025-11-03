@@ -29,12 +29,29 @@ class BPYBVHVisitor(BVHVisitor):
     """First Blender-specific visitor for BVH Visitor."""
 
     nodes_count = 0
-    channels_count_per_node = []
+    node_names = []
+    hierarchy = None
+
+    def _store_names(self, segment):
+        self.node_names.append({
+            'name': segment.get('name', 'unnamed_segment'),
+            'channels': segment.get('channels', {})
+        })
+
+        children = segment.get('children')
+        if children is not None:
+            for child in children:
+                if child.get('name') == 'End Site':
+                    break
+                self._store_names(child)
+
 
     def visitBvh(self, ctx:BVHParser.BvhContext):
-        hierarchy = self.visit(ctx.hierarchy())
+        self.hierarchy = self.visit(ctx.hierarchy())
+        self._store_names(self.hierarchy)
+
         motion = self.visit(ctx.motion())
-        return {"hierarchy": hierarchy, "motion": motion}
+        return {"hierarchy": self.hierarchy, "motion": motion}
 
     def visitHierarchy(self, ctx:BVHParser.HierarchyContext):
         return self.visit(ctx.root())
@@ -49,9 +66,6 @@ class BPYBVHVisitor(BVHVisitor):
         # node: LBRACE offset channels? childBlock* RBRACE;
         offset = self.visit(ctx.offset())
         channels = self.visit(ctx.channels()) if ctx.channels() else []
-
-        # Store channel count per node for later use
-        self.channels_count_per_node.append(len(channels))
 
         children = [self.visit(c) for c in ctx.childBlock()] if ctx.childBlock() else []
         
@@ -70,63 +84,79 @@ class BPYBVHVisitor(BVHVisitor):
         name = ctx.identifier().getText()
         node = self.visit(ctx.node())
         node["name"] = name
+        
         return node
 
     def visitEndSite(self, ctx:BVHParser.EndSiteContext):
         return {"name": "End Site", "offset": self.visit(ctx.offset())}
     
     def visitMotion(self, ctx:BVHParser.MotionContext):
+        # Get motion data properties.
         num_frames = int(ctx.INT().getText())
         frame_time = float(ctx.number().getText())
 
+        # `List` for storing elaborated motion data.
         motion_data = []
 
+        # Compute every and each frame motion data.
         for frameline in ctx.frameLine():
-            frames = []
+            frame_motion_data = []
 
-            # This is a little complex because we need to map the flat list of numbers
-            # to the hierarchical structure of nodes and their channels.
-            #
-            # We use `self.channels_count_per_node` to know how many channels each node has,
-            # and we iterate through the numbers accordingly.
-            #
-            # `frameline.number()` gives us the list of numbers for the current frame.
-            # We keep track of how many channels we've extracted for the current node,
-            # and when we've extracted all channels for a node, we move to the next node by
-            # incrementing `curr_node_index`.
-            #
-            # `extracted_channels_count` keeps track of how many channels we've extracted
-            # for the current node so far.
-            extracted_channels_count = 0
+            # Index of the channel we are extracting for the current joint.
+            channel_index = 0
 
             # Initialize current node index, an keep track (in the loop) of the node we're
             # processing.
-            curr_node_index = 0
+            node_index = 0
 
-            # List to hold the deltas (the float values associated to the node channels) for
-            # the current node.
-            curr_node_deltas = []
+            # `dict` where per node transforms are stored in the form:
+            # {
+            #     "name": 'spine01',
+            #     "Xposition": 0.123,
+            #     "Yposition": 0.123,
+            #     "Zposition": 0.123,
+            #     "Xrotation": 0.123,
+            #     "Yrotation": 0.123,
+            #     "Zrotation": 0.123
+            # }
+            node_motion_data = {}
+
+            node_name = None
+            node_channels = None
+
+            # Add each channel `name: value` entry to the `dict` holding current node motion data.
             for number in frameline.number():
-                # Get the number of channels for the current node, previously stored in `self.visitNode()`.
-                curr_node_channels_count = self.channels_count_per_node[curr_node_index]  
+                if channel_index == 0:
+                    # Node names have been stored in `self.node_names` by the method `self.visitJoint()`
+                    # as a list, in reading order, so they can be used as a lookup table for frames.
+                    node_name = self.node_names[node_index].get('name')
+                    node_motion_data['name'] = node_name
+                    
+                    # Get current node channels, previously stored in `self.visitNode()`.
+                    node_channels = self.node_names[node_index].get('channels')
+                
+                print(f'node_name: {node_name}')
+                node_motion_data[node_channels[channel_index]] = float(number.getText())
 
-                # Store the coordinate
-                curr_node_deltas.append(float(number.getText()))
-                extracted_channels_count += 1
+                channel_index += 1
 
                 # Move to the next node if we've extracted all its channels
-                if extracted_channels_count >= curr_node_channels_count:
-                    frames.append(curr_node_deltas)
+                if channel_index >= len(node_channels):
+                    # Append current node motion data to the current frame `List`.
+                    frame_motion_data.append(node_motion_data)
 
-                    # Reset for the next node
-                    curr_node_deltas = []
-                    extracted_channels_count = 0
+                    # We have finished with the current node.
+                    # We can reset the values for the next node.
+                    node_motion_data = {}
+                    channel_index = 0
 
                     # Increment the node index for the next iteration.
-                    curr_node_index += 1
+                    node_index += 1
 
-            motion_data.append(frames)
+            # Append the current frame motion data to `motion_data` `List`
+            motion_data.append(frame_motion_data)
         
+        # print(f'motion_data: {motion_data}')
         return {"num_frames": num_frames, "frame_time": frame_time, "motion_data": motion_data}
 
     # implement other visit methods as needed

@@ -8,8 +8,14 @@
 import enum
 import sys
 import os
+import traceback
+import logging
+from functools import reduce
+from typing import Sequence
 from math import radians
 from antlr4 import FileStream, CommonTokenStream
+
+logger = logging.getLogger(__name__)
 
 
 class WorkingEnvironment(enum.Enum):
@@ -23,15 +29,14 @@ WORKINGENVIRONMENT = WorkingEnvironment.STANDALONE
 # Determine the working environment
 try:
     import bpy
-    from mathutils import Vector, Euler
-
+    from mathutils import Vector, Euler, Matrix
     print("Running inside Blender")
     WORKINGENVIRONMENT = WorkingEnvironment.BLENDER
 except ImportError:
     print("Running outside Blender")
 
 CONTEXTSYSPATHS = []
-script_dir = ''
+SCRIPT_DIR = ''
 
 if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
     # Get the current script being executed
@@ -39,7 +44,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
     if text.filepath:
         # If the script is saved, retrieve its directory
-        script_dir = os.path.dirname(bpy.path.abspath(text.filepath))
+        SCRIPT_DIR = os.path.dirname(bpy.path.abspath(text.filepath))
     else:
         print("The script is not saved. Please save it to retrieve the directory.")
         exit(1)
@@ -50,72 +55,103 @@ elif WORKINGENVIRONMENT == WorkingEnvironment.STANDALONE:
     # FIXME: this is going to fail in Blender, if we just open the script from the Text Editor,
     # since __file__ is not defined there. We need to find another way to get the project root
     # in that case, perhaps by using bpy.path or similar Blender-specific APIs.
-    script_dir = os.path.dirname(os.path.realpath(__file__))
+    SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
-print("Script Directory:", script_dir)
+print("Script Directory:", SCRIPT_DIR)
 
-project_root = os.path.join(script_dir, '..', '..')
-print("Project root:", project_root)
+PROJECT_ROOT = os.path.join(SCRIPT_DIR, '..', '..')
+print("Project root:", PROJECT_ROOT)
 
-CONTEXTSYSPATHS.append(script_dir)
-CONTEXTSYSPATHS.append(project_root)
+CONTEXTSYSPATHS.append(SCRIPT_DIR)
+CONTEXTSYSPATHS.append(PROJECT_ROOT)
 
 # Add all the gathered paths to sys.path if not already present.
 for path in CONTEXTSYSPATHS:
     if path not in sys.path:
         sys.path.append(path)
 
-# Now you can import your Antlr files as if you were in the root
-# Assuming your Antlr files are MyGrammarLexer.py, MyGrammarParser.py, etc.
+# Now we can import Antlr modules as if we were in the project root.
 try:
     from BVHParser import BVHParser
     from BVHLexer import BVHLexer
     from BPYBVHVisitor import BPYBVHVisitor
-
-    print("Successfully imported Antlr files!")
+    print("Successfully imported Antlr modules!")
 except ImportError as e:
-    print(f"Error importing Antlr files: {e}")
-
-
-node_frame_data_index = 0
-TRANSFORMS = []
-def append_transform(segment_name, transform):
-    """ Convenience function to append new transforms to `TRANSFORMS` list, as
-        a more structured data.
-
-    Args:
-        segment_name (String): the name of the `JOINT` or `ROOT` segment
-        transform (mathutils.Euler | mathutils.Quaternion | mathutils.Matrix): transformation
-    """    
-    TRANSFORMS.append({
-        'segment_name': segment_name,
-        'transform': transform
-    })
+    print(f"Error importing Antlr modules: {e}")
 
 if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
-    # FIXME: this funcion does nothing for the moment, MakeHuman community Asset Pack BVH files
-    # seem to already be in Z-up coordinate system.
-    def bvh_to_blender_coords(bvh_offset: Vector) -> Vector:
+    REST_POSE = []
+
+    def switch_mode(mode):
+        """ Switch to selected `mode` (see https://docs.blender.org/api/4.2/bpy_types_enum_items/object_mode_items.html#rna-enum-object-mode-items) """
+        bpy.ops.object.mode_set(mode=mode)
+        
+        print(f'Switched to {bpy.context.active_object.mode} Mode')
+
+    def get_rest_poses(armature_data):
+        """ Bla, bla, bla... """
+        bpy.ops.object.mode_set(mode='OBJECT')
+        print("Switched to Object Mode")
+
+        bones = armature_data.bones
+
+        print(f'Bones count: {len(bones)}')
+        
+        for bone in bones:
+            # For use later in sandwich computation, rest pose matrix and inverse matrix.
+            bone_rest_pose = bone.matrix_local.to_3x3()
+            bone_rest_pose_inv = Matrix(bone_rest_pose)
+            bone_rest_pose_inv.invert_safe()
+
+            if bone.name == 'root':
+                print(f'bone_name: {bone.name}')
+                print(f'bone_rest_pose: {bone_rest_pose}')
+                print(f'bone_rest_pose_inv: {bone_rest_pose_inv}')
+
+            # Append the results to `REST_POSE`.
+            REST_POSE.append({
+                'name': bone.name,
+                'rest_pose': bone_rest_pose.to_4x4(),
+                'rest_pose_inv': bone_rest_pose_inv.to_4x4()
+            })
+
+            if bone.name == 'root':
+                print(f'root: {REST_POSE[0]}')
+
+    def compute_midpoint(points: Sequence[Vector] | None) -> Vector:
+        """ Compute the mid point of a sequence of `mathutils.Vector` objects
+
+        Args:
+            vectors (Sequence[Vector]): The sequence of vectors
+
+        Returns:
+            Vector: the mid point Vector
+        """
+        if points is None:
+            return Vector((.0, .0, .1))
+        
+        mp = reduce(lambda v1, v2: v1 + v2, points) / len(points)
+        print(f'midpoint: {mp}')
+
+        return mp
+
+    def bvh_to_blender_axis(components):
         """
         Converts a BVH (X, Y, Z) offset vector to Blender's coordinate system
         (typically Z-up, Y-forward).
         A common transformation for BVH to Blender is (X, Y, Z) -> (X, Z, -Y).
         """
-        x, y, z = bvh_offset
-        # return Vector((x, z, -y))
-        return Vector((x, y, z))  # No conversion for now
-
-    # NOTE: Possible function for applying the first frame's joint|root transform.
+        x, y, z = components
+        return (x, z, -y)
 
     def euler_from_components(transform_components):
-        """ Calculate the transformation matrix for a joint/node/segment
+        """ Calculate Euler transformation given the rotations on the 3 axes
 
         Args:
-            node_world_position (mathutils.Vector): Vector rappresenting a position relative to World Space
-            node_frame_coordinates (list | tuple): list of float values that can have 3 or 6 elements 
+            transform_components (Sequence): Sequence of float values 
 
         Returns:
-            mathutils.Matrix: A 4x4 matrix carrying the result transformation
+            mathutils.Euler: rotation transformation
         """
 
         # TODO: we are not validating parameters.
@@ -132,10 +168,10 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         return Euler([radians(channel) for channel in rotation_components])
 
     def create_bones(
-        edit_bones: bpy.types.ArmatureEditBones,
-        joint_data: dict,
+        armature_data,
+        segment_data: dict,
         parent_edit_bone: bpy.types.EditBone,
-        bvh_structure: dict
+        bvh: dict
     ):
         """Recursively creates a bone for the current joint, setting
         its head, parent, and then determining its tip based on
@@ -147,195 +183,91 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             parent_edit_bone (bpy.types.EditBone): parent EditBone
         """
 
-        global node_frame_data_index, TRANSFORMS
-
-        node_frame_data_index += 1
-
-        joint_name = joint_data.get("name")
-        if joint_name == "End Site":
-            # End Sites do not become bones themselves
-            return
-
-        # Offset is relative to the parent joint's head world position.
-        offset_vec = Vector(joint_data['offset'])
-        blender_offset = bvh_to_blender_coords(offset_vec)
-
-        # Calculate the current joint's world head position
-        head_vec = parent_edit_bone.head + blender_offset
+        edit_bones = armature_data.edit_bones
 
         # Use the joint name, or a default if missing.
-        bone_name = joint_name if joint_name else "Joint"
+        bone_name = segment_data.get('name', 'bone')
 
-        # TODO: I think this can be handled more elegantly?
         # Handle duplicate names by incrementing if necessary
-        # (Blender does this automatically if a name already exists,
-        # But we need to ensure we use the actual resulting name for the parent link).
         if bone_name in edit_bones:
             # Use a counter to ensure unique names (e.g., bone_name.001)
             i = 1
-            while f"{bone_name}.{i:03d}" in edit_bones:
+            while f'{bone_name}.{i:03d}' in edit_bones:
                 i += 1
-            bone_name = f"{bone_name}.{i:03d}"
+            bone_name = f'{bone_name}.{i:03d}'
 
-        frame_coords = bvh_structure['motion']['motion_data'][0][node_frame_data_index]
-        pose_bone_euler = euler_from_components(frame_coords)
-        append_transform(bone_name, pose_bone_euler)
+        # Create `bpy.types.EditBone`.
+        edit_bone = edit_bones.new(bone_name)
+        print(f'Edit bone "{edit_bone.name}" created.')
 
-        # Finally create the bone
-        new_bone = edit_bones.new(bone_name)
-        new_bone.head = head_vec
-        new_bone.parent = edit_bones.get(parent_edit_bone.name)
-
-        # Determine the current bone's tip position
-        children = joint_data.get("children", [])
-
-        end_site_child = next(
-            (c for c in children if c.get("name") == "End Site"), None)
-
-        if end_site_child:
-            # Rule: "End Site" named nodes serve to place the bone tip of their parent node.
-            end_site_offset = bvh_to_blender_coords(
-                Vector(end_site_child["offset"]))
-            new_bone.tail = head_vec + end_site_offset
-
-        elif children:
-            # Rule: The tips of parent bones should just use the offset of (let's say) the first child bone.
-            first_child_joint = next(
-                (c for c in children if c.get("name") != "End Site"), None)
-
-            if first_child_joint:
-                # The tip is the world position (head) of the first child joint.
-                first_child_offset = Vector(first_child_joint["offset"])
-                blender_first_child_offset = bvh_to_blender_coords(
-                    first_child_offset)
-                new_bone.tail = head_vec + blender_first_child_offset
-            else:
-                # Fallback for joints whose only children are 'End Site' nodes (handled by the if end_site_child check)
-                # or for a malformed hierarchy. Since the End Site check is first, this fallback is less likely.
-                new_bone.tail = head_vec + \
-                    Vector((0.0, 0.0, 0.1))  # Small length along Z-axis (up)
-
+        # Calculate and apply the bone head vector.
+        #
+        # Offset, as extracted by BVH file, is a triplet of float values
+        # recording the current joint position, relative to its parent
+        # position.
+        # `bpy.types.EditBone.head`, instead, is a `mathutils.Vector`,
+        # relative to Armature Space. A bone head, in Blender, is the
+        # bone's rotation pivot.
+        edit_bone.parent = parent_edit_bone
+        if edit_bone.parent is None:
+            edit_bone.head = Vector(segment_data['offset'])
         else:
-            # TODO: I would eventually extrude the tail along the direction of the parent bone?
-            # Leaf bone without an End Site
-            new_bone.tail = head_vec + \
-                Vector((0.0, 0.0, 0.1))  # Small length along Z-axis (up)
+            edit_bone.head = edit_bone.parent.head + \
+                Vector(segment_data['offset'])
 
-        # Recursively call for all non-End Site children
+        # Determine bone's tail position
+        children = segment_data.get('children')
+        if children is not None and len(children) > 0:
+            # If the mapped segment has just one child, we place the
+            # bone's tail at the child segment offset. 
+            if len(children) == 1:
+                edit_bone.tail = edit_bone.head + Vector(children[0]["offset"])
+
+            # It the mapped segment, instead, has more than one child,
+            # we compute the children midpoint and place the bone's
+            # tail at that location.
+            elif len(children) > 1:
+                edit_bone.tail = edit_bone.head + \
+                    compute_midpoint([Vector(child.get('offset'))
+                                     for child in children])
+        # In case (theoretically non normative in BVH format, but:
+        # who knows?) that the segment has no child, we just offset
+        # the bone's tail a bit along Z.
+        else:
+            edit_bone.tail = edit_bone.head + Vector((0.0, 0.0, 0.1))
+
+        # Recursively traverse the hierarchy and create descendant bone
         for child_data in children:
-            if child_data.get("name") != "End Site":
+            # `End Site` blocks serve only as terminators of the hierarchy.
+            # Don't go further!
+            if child_data.get('name') != 'End Site':
                 create_bones(
-                    edit_bones,
+                    armature_data,
                     child_data,
-                    new_bone,
-                    bvh_structure
+                    edit_bone,
+                    bvh
                 )
 
-    def build_armature_from_bvh_dict(bvh_structure: dict):
+    def create_armature() -> bpy.types.Armature:
+        """ Create the armature, prepare the environment, and return a
+            `bpy.types.ArmatureEditBones` collection ready for bones editing.
         """
-        Main function to initialize the Blender Armature and start the recursive build.
-        """
-
-        global node_frame_data_index, TRANSFORMS
-
-        # Prepare the armature object
         armature_data = bpy.data.armatures.new("BVH_Armature_Data")
         armature_object = bpy.data.objects.new("BVH_Armature", armature_data)
         bpy.context.collection.objects.link(armature_object)
-        print(
-            f"Created Armature Object {armature_object.name}: {armature_object.name in bpy.context.collection.objects}")
 
-        # Deselect all and select the new armature
+        # Deselect all and select the newly created armature
         bpy.ops.object.select_all(action='DESELECT')
         armature_object.select_set(True)
         bpy.context.view_layer.objects.active = armature_object
-        print(
-            f"Selected Armature Object: {bpy.context.view_layer.objects.active.name}")
 
         # Switch to Edit Mode to create bones
         bpy.ops.object.mode_set(mode='EDIT')
         print("Switched to Edit Mode")
 
-        # Is a collection of EditBone objects which allow to edit armature bones.
-        # specific type of collection: https://docs.blender.org/api/4.2/bpy.types.ArmatureEditBones.html
-        # https://docs.blender.org/api/4.2/bpy.types.bpy_prop_collection.html
-        # https://docs.blender.org/api/4.2/bpy.types.EditBone.html
-        edit_bones = armature_data.edit_bones
-        print(f"Edit Bones Collection: {edit_bones}")
+        return armature_data
 
-        # Get the Root Node (the 'hierarchy' object)
-        root_data = bvh_structure["hierarchy"]
-        print(
-            f"Data collected for Root Joint: {root_data.get('name', 'Unnamed Root!!!!!!!')}")
-
-
-        # We assume that the BVH file follows a Y Up, -Z Forward convention,
-        # and convert accordingly.
-        # NOTE: disabled. MH BVHs are already in Z up.
-        #
-        # Enforce BPY naming conventions.
-        # `bpy.types.EditBone.head` is a `mathutils.Vector`, relative to
-        # Armature Space.
-        # In Blender, the Head of a Bone represents its rotation pivot.
-        #print("BVH offset data of root joint: " + root_data["offset"])
-        offset_vec = bvh_to_blender_coords(Vector(root_data["offset"]))
-        print(f"Offset `mathutils.Vector` (in Blender coords system): {offset_vec}")
-
-        # NOTE: we use a counter to access per frame vector components,
-        # we have to do so, until we change the frame data structure.
-        #
-        # The set off coordinate components associated to root joint at
-        # frame 0.
-        frame_coords = bvh_structure['motion']['motion_data'][0][0]
-        print(f"Root joint frame coordinate components: {frame_coords}")
-
-        # Compute the transformation of the bone in the first frame.
-        pose_bone_euler = euler_from_components(frame_coords)
-        print(f"Pose root bone transformation matrix at frame 0: {pose_bone_euler}")
-        
-        # Store the calculated matrix into `TRANSFORMS`.
-        append_transform('root', pose_bone_euler)
-
-        # Create the Root Bone
-        root_bone = edit_bones.new(root_data.get('name', 'root'))
-        root_bone.head = offset_vec
-        root_bone.parent = None
-        print(f"Created Root Bone: {root_bone.name} at {root_bone.head}")
-
-        # TODO: actually here we would like to compute a midpoint of the root
-        # head and its children heads.
-        root_children = root_data.get("children", [])
-        if root_children:
-            first_child = next(
-                (c for c in root_children if c.get("name") != "End Site"), None)
-
-            # Set root bone tail vector to the value of its first child offset.
-            if first_child:
-                # NOTE: again, the possibly useless conversion.
-                root_bone.tail = offset_vec + \
-                    bvh_to_blender_coords(Vector(first_child["offset"]))
-            else:
-                # Fallback for a single-joint hierarchy
-                root_bone.tail = offset_vec + Vector((0.0, 0.0, 0.1))
-        else:
-            root_bone.tail = offset_vec + Vector((0.0, 0.0, 0.1))
-
-        # Recursively create children bones
-        for child_data in root_children:
-            create_bones(
-                edit_bones,
-                child_data,
-                root_bone,
-                bvh_structure
-            )
-
-        pose_armature()
-
-        # Switch back to Object Mode
-        bpy.ops.object.mode_set(mode='OBJECT')
-        print(f"Successfully created Armature: {armature_object.name}")
-
-    def init_blender_scene():
+    def init_blender_context():
         """ Initialize the Blender scene for Armature building. """
         # Clear any selection and ensure we are in a mode that allows object creation
         if bpy.context.object and bpy.context.object.mode != 'OBJECT':
@@ -345,38 +277,146 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.delete(use_global=False)
 
-    def pose_armature():
-        """" bla bla """
-        global TRANSFORMS
+    # NOTE: this utility function could eventually switch to 'POSE' mode, if needed.
+    def get_pose_bone_by_name(pose_bone_name):
+        """ Get pose bone by name """
+        return bpy.context.object.pose.bones[pose_bone_name]
 
-        # Switch to Edit Mode to create bones
-        bpy.ops.object.mode_set(mode='POSE')
-        print("Switched to Pose Mode")
+    def pose_bones(motion):
+        """ Pose bones. """
 
-        for transform in TRANSFORMS:
-            pose_bone = bpy.context.object.pose.bones[transform['segment_name']]
-            
-            rotation_mode = pose_bone.rotation_mode
-            # print(f'Rotation mode: {rotation_mode}')
+        switch_mode('POSE')
 
-            if rotation_mode == 'QUATERNION':
-                rotation_quaternion = Euler(transform['transform']).to_quaternion()
-                # print(f'Quaternion rotation: {rotation_quaternion}')
-                pose_bone.rotation_quaternion = rotation_quaternion
-            elif rotation_mode == 'EULER':
-                rotation_euler = Euler(transform['transform'])
-                # print(f'Euler rotation: {rotation_euler}')
-                pose_bone.rotation_euler = rotation_euler
+        # Even if, unlikely, `motion_data` could be `None`.
+        motion_data = motion.get('motion_data')
+        if motion_data is not None:
+            frame_data = motion_data[0]
+
+            for segment_motion_data in frame_data:
+                segment_name = segment_motion_data.get('name')
+                pose_bone = get_pose_bone_by_name(segment_name)
+
+                # TODO: if we make also the hierarchy accessible we can retrive this data
+                # automatically and perform verification and sanification checks.
+                segment_channel_names = ('Xrotation', 'Yrotation', 'Zrotation')
+                components = [radians(segment_motion_data.get(channel_name)) for channel_name in segment_channel_names]
 
 
-if __name__ == "__main__":
-    # Where to store the parsed BVH structure
-    bvh_dict = None  # pylint: disable=invalid-name
+                bone_rest_pose_data = next((b for b in REST_POSE if b.get('name') == segment_name), None)
+                if bone_rest_pose_data is not None:
+                    bone_rest_pose_mat4 = bone_rest_pose_data.get('rest_pose')
+                    bone_rest_pose_inv_mat4 = bone_rest_pose_data.get('rest_pose_inv')
 
-    # Get BVH file path
-    bvh_filepath = os.path.join(project_root, 'test.bvh')
+                    
+                    rotation_mode_bak = pose_bone.rotation_mode
+                    rotation_mode_cfg = ''.join([axis[0:1] for axis in segment_channel_names])[::-1]
+                    euler = Euler(components, rotation_mode_cfg)
+                    transform_mat4 = euler.to_matrix().to_4x4()
 
-    # Parse the BVH file
+                    print(f'sandwich: {bone_rest_pose_data}')
+                    
+                    # sandwich
+                    bone_rotation_mat4 = (
+                        bone_rest_pose_inv_mat4 @
+                        transform_mat4 @
+                        bone_rest_pose_mat4
+                    )
+
+                    pose_bone.rotation_mode = rotation_mode_cfg
+                    # Get bone rotation mode and apply transform accordingly.
+                    # if rotation_mode_bak == 'QUATERNION':
+                    #     pose_bone.rotation_quaternion = bone_rotation_mat4.to_quaternion()
+                    # elif rotation_mode_bak == 'EULER':
+                    pose_bone.rotation_euler = bone_rotation_mat4.to_euler(rotation_mode_cfg)
+
+                    pose_bone.rotation_mode = rotation_mode_bak
+
+# TODO: check at https://docs.blender.org/api/4.2/mathutils.html#mathutils.Euler,
+# there is a simpler example using `format()`.
+def serialize_euler(obj):
+    """ Bla, bla, bla, ... """
+    if isinstance(obj, Euler):
+        return {
+            'x_rot': obj.x,
+            'y_rot': obj.y,
+            'z_rot': obj.z
+        }
+    raise TypeError(f'Cannot serialize object of {type(obj)}')
+
+def init_logging():
+    """
+    The `init_logging` function initializes logging in Python by creating a log directory and setting up
+    a log file with a specific filename.
+    """
+
+    # The `FileHandler` instanced by `basicConfig()` doesn't create missing
+    # directories, passed in the `filename` parameter (undocumented).
+    log_dir = os.path.join(PROJECT_ROOT, 'log')
+    
+    # Create the directory, if it doesn't exist.
+    os.makedirs(log_dir, exist_ok=True)
+
+    # The base directory is relative to the execution environment
+    # (undocumented?).
+    # In fact, Python outputs:
+    # PermissionError: [Errno 13] Permission denied: 'D:\\Program Files\\Blender Foundation\\Blender 4.2\\goofy_importer.log'
+    # 'D:\\Program Files\\Blender Foundation\\Blender 4.2\\' is the location
+    # of my local Blender executable.
+    # I have to set a different location, which, for now, is set to the project root.
+    logging.basicConfig(filename=os.path.join(log_dir, 'goofy_importer.log'), level=logging.NOTSET)
+    logger.info('Logger Started')
+
+def import_bvh(bvh):
+    """
+    The `import_bvh` function imports a BVH file into Blender, creates an armature, sets bone hierarchy,
+    retrieves rest poses, and poses the bones based on motion data.
+    
+    :param bvh: The `bvh` parameter in the `import_bvh` function is expected to be a BVH (Biovision
+    Hierarchy) file data that contains information about a skeleton's hierarchy and motion data. This
+    function is designed to import this BVH data into Blender to create an armature and pose
+    """
+    if bvh is not None:
+        try:
+            init_blender_context()
+
+            armature_data = create_armature()
+
+            create_bones(
+                    armature_data,
+                    bvh.get('hierarchy'),
+                    None,
+                    bvh
+                )
+
+            get_rest_poses(armature_data)
+
+            pose_bones(bvh.get('motion'))
+
+                # Switch back to Object Mode
+            bpy.ops.object.mode_set(mode='OBJECT')
+
+        except Exception as e:
+            print("Traceback Info:")
+            traceback.print_exc()
+    
+    else:
+        logger.info('Invalid BVH file.')
+
+
+def read_bvh(bvh_filepath):
+    """
+    The `read_bvh` function reads and parses a BVH file using a lexer, parser, and visitor in Python.
+    
+    :param bvh_filepath: The `bvh_filepath` parameter in the `read_bvh` function is a string that
+    represents the file path to the BVH (Biovision Hierarchy) file that you want to parse and read. This
+    function reads the contents of the BVH file, parses it using a lexer and parser
+    :return: The `read_bvh` function returns the parsed BVH (Biovision Hierarchy) data structure
+    obtained from the input BVH file specified by the `bvh_filepath`. If the parsing is successful, the
+    function returns the parsed BVH structure. If an error occurs during parsing, an error message is
+    printed, and `None` is returned.
+    """
+    bvh = None
+
     try:
         # Create an input stream from filepath
         input_stream = FileStream(bvh_filepath)
@@ -391,11 +431,8 @@ if __name__ == "__main__":
         # Parse the BVH file, beginning from the `bvh` rule, defined in the grammar `./BVH.g4`
         tree = parser.bvh()
 
-        # Log the parse tree (for debugging)
-        # print(tree.toStringTree(recog=parser))
-
         v = BPYBVHVisitor()
-        bvh_dict = v.visit(tree)
+        bvh = v.visit(tree)
 
         print(f"Total visited nodes: {v.nodes_count}")
 
@@ -404,14 +441,16 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Error while parsing: {str(e)}")
 
+    return bvh
+
+if __name__ == "__main__":
+    init_logging()
+
+    # Parse the BVH file
+    bvh = read_bvh(os.path.join(PROJECT_ROOT, 'test.bvh'))
+
     # Build the Blender Armature if in Blender environment
     if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
-        try:
-            init_blender_scene()
+        import_bvh(bvh)
 
-            # Import the BVH structure into Blender as an Armature
-            build_armature_from_bvh_dict(bvh_dict)
-            print(f'TRANSFORMS: {TRANSFORMS}')
-
-        except Exception as e:
-            print(f"Error while building Blender Armature: {str(e)}")
+    logger.info('Logger Stopped')

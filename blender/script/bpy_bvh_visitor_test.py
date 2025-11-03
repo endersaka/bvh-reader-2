@@ -1,6 +1,7 @@
 import json
 import sys
 import os
+import traceback
 from antlr4 import FileStream, CommonTokenStream
 from BPYBVHVisitor import BPYBVHVisitor
 
@@ -57,6 +58,8 @@ def main(argv):
 
         v = BPYBVHVisitor()
         data = v.visit(tree)
+
+        print(f'motion_data {data.get('motion').get('motion_data')}')
         
         # Write the data to a JSON file
         with open("tree.json", mode="w", encoding="utf-8") as tree_json_file:
@@ -70,7 +73,8 @@ def main(argv):
         print("\nParsing completed successfully!")
 
     except Exception as e:
-        print(f"Error while parsing: {str(e)}")
+        print("Traceback Info:")
+        traceback.print_exc()
 
 
 if __name__ == '__main__':
