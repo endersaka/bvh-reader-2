@@ -4,6 +4,8 @@ BVH Reader 2 is a BVH (BioVision Hierarcy) file reader written in Python 3. It i
 
 > **NOTE**: the number '2' in the name of this project is not a version number. It is a nostalgic addition, taken from my former project [MD5 Reader 2](https://sourceforge.net/projects/md5reader/), in which I implemented (manually) my first Lexer/Parser code.
 
+![On the left BVH Importer version; on the right, BVH Reader 2 version](<img/Screenshot 2025-11-03 193326.png>)
+
 
 ## Dependecies
 
