@@ -103,15 +103,20 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             bone_rest_pose_inv = Matrix(bone_rest_pose)
             bone_rest_pose_inv.invert_safe()
 
-            print(f'bone_rest_pose: {bone_rest_pose}')
-            print(f'bone_rest_pose_inv: {bone_rest_pose_inv}')
+            if bone.name == 'root':
+                print(f'bone_name: {bone.name}')
+                print(f'bone_rest_pose: {bone_rest_pose}')
+                print(f'bone_rest_pose_inv: {bone_rest_pose_inv}')
 
             # Append the results to `REST_POSE`.
             REST_POSE.append({
                 'name': bone.name,
-                'rest_pose': bone_rest_pose.resize_4x4(),
-                'rest_pose_inv': bone_rest_pose_inv.resize_4x4()
+                'rest_pose': bone_rest_pose.to_4x4(),
+                'rest_pose_inv': bone_rest_pose_inv.to_4x4()
             })
+
+            if bone.name == 'root':
+                print(f'root: {REST_POSE[0]}')
 
     def compute_midpoint(points: Sequence[Vector] | None) -> Vector:
         """ Compute the mid point of a sequence of `mathutils.Vector` objects
@@ -306,19 +311,23 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                     rotation_mode_bak = pose_bone.rotation_mode
                     rotation_mode_cfg = ''.join([axis[0:1] for axis in segment_channel_names])[::-1]
                     euler = Euler(components, rotation_mode_cfg)
-                    # # sandwich
-                    # bone_rotation_mat4 = (
-                    #     bone_rest_pose_inv_mat4 @
-                    #     euler.to_matrix().to_4x4() @
-                    #     bone_rest_pose_mat4
-                    # )
+                    transform_mat4 = euler.to_matrix().to_4x4()
+
+                    print(f'sandwich: {bone_rest_pose_data}')
+                    
+                    # sandwich
+                    bone_rotation_mat4 = (
+                        bone_rest_pose_inv_mat4 @
+                        transform_mat4 @
+                        bone_rest_pose_mat4
+                    )
 
                     pose_bone.rotation_mode = rotation_mode_cfg
                     # Get bone rotation mode and apply transform accordingly.
                     # if rotation_mode_bak == 'QUATERNION':
                     #     pose_bone.rotation_quaternion = bone_rotation_mat4.to_quaternion()
                     # elif rotation_mode_bak == 'EULER':
-                    pose_bone.rotation_euler = euler
+                    pose_bone.rotation_euler = bone_rotation_mat4.to_euler(rotation_mode_cfg)
 
                     pose_bone.rotation_mode = rotation_mode_bak
 
