@@ -85,8 +85,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
     def switch_mode(mode):
         """ Switch to selected `mode` (see https://docs.blender.org/api/4.2/bpy_types_enum_items/object_mode_items.html#rna-enum-object-mode-items) """
         bpy.ops.object.mode_set(mode=mode)
-        
-        print(f'Switched to {bpy.context.active_object.mode} Mode')
+        print(f'Switched to {mode} mode')
 
     def get_rest_poses(armature_data):
         """ Bla, bla, bla... """
@@ -277,15 +276,36 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.delete(use_global=False)
 
-    # NOTE: this utility function could eventually switch to 'POSE' mode, if needed.
-    def get_pose_bone_by_name(pose_bone_name):
-        """ Get pose bone by name """
-        return bpy.context.object.pose.bones[pose_bone_name]
+    def get_active_object() -> bpy.types.Object | None:
+        """ Get active object """
+        obj = bpy.context.object
+        if obj is None:
+            obj = bpy.context.active_object
+        return obj
+    
+    def get_active_armature() -> bpy.types.Object | None:
+        """ Get active armature """
+        arm = get_active_object()
+        if arm is None or arm.type != 'ARMATURE':
+            return None
+        return arm
+
+    def get_pose_bone_by_name(name, armature=None):
+        """ Get pose bone by name. If `obj` is passed and its `type` attribute
+            is 'ARMATURE', get the named bone from the passed object. """
+        if armature is None:
+            armature = bpy.context.object
+        if armature is not None and armature.type == 'ARMATURE':
+            switch_mode('POSE')
+            return armature.pose.bones.get(name)
+        return None
 
     def pose_bones(motion):
-        """ Pose bones. """
+        """ Pose bones using motion data. """
 
-        switch_mode('POSE')
+        # TODO: we should present the user with the ability to choose an object
+        # in case there is no valid active object.
+        armature = get_active_armature()
 
         # Even if, unlikely, `motion_data` could be `None`.
         motion_data = motion.get('motion_data')
@@ -294,13 +314,14 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
             for segment_motion_data in frame_data:
                 segment_name = segment_motion_data.get('name')
-                pose_bone = get_pose_bone_by_name(segment_name)
+                # TODO: We should handle the case in which no bone with name
+                # `segment_name` is found.
+                pose_bone = get_pose_bone_by_name(segment_name, armature=armature)
 
                 # TODO: if we make also the hierarchy accessible we can retrive this data
                 # automatically and perform verification and sanification checks.
                 segment_channel_names = ('Xrotation', 'Yrotation', 'Zrotation')
                 components = [radians(segment_motion_data.get(channel_name)) for channel_name in segment_channel_names]
-
 
                 bone_rest_pose_data = next((b for b in REST_POSE if b.get('name') == segment_name), None)
                 if bone_rest_pose_data is not None:
