@@ -407,11 +407,10 @@ def import_bvh(bvh_dict):
     function is designed to import this BVH data into Blender to create an armature and pose
     """
     if bvh_dict is not None:
+        init_blender_context()
+        armature_data = create_armature()
+
         try:
-            init_blender_context()
-
-            armature_data = create_armature()
-
             create_bones(
                     armature_data,
                     bvh_dict.get('hierarchy'),
@@ -423,7 +422,7 @@ def import_bvh(bvh_dict):
 
             pose_bones(bvh_dict.get('motion'))
 
-                # Switch back to Object Mode
+            # Switch back to Object Mode
             bpy.ops.object.mode_set(mode='OBJECT')
 
         except Exception as e:
