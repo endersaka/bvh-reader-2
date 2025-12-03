@@ -1,6 +1,6 @@
 import sys
 from antlr4 import *
-from BVHLexer import BVHLexer
+from src.bvh_reader_2.generated.BVHLexer import BVHLexer
 from BVHParser import BVHParser
 from BVHListener import BVHListener
 

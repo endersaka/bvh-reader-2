@@ -18,8 +18,8 @@ if project_root not in sys.path:
 # Now you can import your Antlr files as if you were in the root
 # Assuming your Antlr files are MyGrammarLexer.py, MyGrammarParser.py, etc.
 try:
-    from BVHParser import BVHParser
-    from BVHVisitor import BVHVisitor
+    from .generated.BVHParser import BVHParser
+    from .generated.BVHVisitor import BVHVisitor
     # ... other imports
     print("Successfully imported Antlr files!")
 except ImportError as e:
@@ -135,23 +135,24 @@ class BPYBVHVisitor(BVHVisitor):
                     # Get current node channels, previously stored in `self.visitNode()`.
                     node_channels = self.node_names[node_index].get('channels')
                 
-                print(f'node_name: {node_name}')
-                node_motion_data[node_channels[channel_index]] = float(number.getText())
+                if node_channels is not None:
+                    print(f'node_name: {node_name}')
+                    node_motion_data[node_channels[channel_index]] = float(number.getText())
 
-                channel_index += 1
+                    channel_index += 1
 
-                # Move to the next node if we've extracted all its channels
-                if channel_index >= len(node_channels):
-                    # Append current node motion data to the current frame `List`.
-                    frame_motion_data.append(node_motion_data)
+                    # Move to the next node if we've extracted all its channels
+                    if channel_index >= len(node_channels):
+                        # Append current node motion data to the current frame `List`.
+                        frame_motion_data.append(node_motion_data)
 
-                    # We have finished with the current node.
-                    # We can reset the values for the next node.
-                    node_motion_data = {}
-                    channel_index = 0
+                        # We have finished with the current node.
+                        # We can reset the values for the next node.
+                        node_motion_data = {}
+                        channel_index = 0
 
-                    # Increment the node index for the next iteration.
-                    node_index += 1
+                        # Increment the node index for the next iteration.
+                        node_index += 1
 
             # Append the current frame motion data to `motion_data` `List`
             motion_data.append(frame_motion_data)

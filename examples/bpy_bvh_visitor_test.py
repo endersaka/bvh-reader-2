@@ -3,7 +3,7 @@ import sys
 import os
 import traceback
 from antlr4 import FileStream, CommonTokenStream
-from BPYBVHVisitor import BPYBVHVisitor
+from src.bvh_reader_2.BPYBVHVisitor import BPYBVHVisitor
 
 # 1. Get the directory of the current script (./blender/script)
 script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -21,7 +21,7 @@ if project_root not in sys.path:
 # Assuming your Antlr files are MyGrammarLexer.py, MyGrammarParser.py, etc.
 try:
     from BVHParser import BVHParser
-    from BVHLexer import BVHLexer
+    from src.bvh_reader_2.generated.BVHLexer import BVHLexer
     # ... other imports
     print("Successfully imported Antlr files!")
 except ImportError as e:
