@@ -450,13 +450,14 @@ def read_bvh(bvh_filepath):
     # Create the parser consuming the token stream
     parser = BVHParser(stream)
 
-    # Parse the BVH file, beginning from the `bvh` rule, defined in the grammar `./BVH.g4`
-    tree = parser.bvh()
+    # Parse the BVH file and get the parse tree context
+    bvh_context = parser.bvh()
 
-    v = BPYBVHVisitor()
-    bvh_dict = v.visit(tree)
+    # Visit the parse tree to build the BVH dictionary
+    bpy_bvh_visitor = BPYBVHVisitor()
+    bvh_dict = bpy_bvh_visitor.visit(bvh_context)
 
-    print(f"Total visited nodes: {v.nodes_count}")
+    print(f"Total visited nodes: {bpy_bvh_visitor.nodes_count}")
 
     print("\nParsing completed successfully!")
 
