@@ -199,6 +199,8 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                 i += 1
             bone_name = f'{bone_name}.{i:03d}'
 
+        switch_mode('EDIT')
+        
         # Create `bpy.types.EditBone`.
         edit_bone = edit_bones.new(bone_name)
         print(f'Edit bone "{edit_bone.name}" created.')
