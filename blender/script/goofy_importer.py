@@ -95,7 +95,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         bones = armature_data.bones
 
         print(f'Bones count: {len(bones)}')
-        
+
         for bone in bones:
             # For use later in sandwich computation, rest pose matrix and inverse matrix.
             bone_rest_pose = bone.matrix_local.to_3x3()
@@ -128,7 +128,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         """
         if points is None:
             return Vector((.0, .0, .1))
-        
+
         mp = reduce(lambda v1, v2: v1 + v2, points, Vector((0, 0, 0))) / len(points)
         print(f'midpoint: {mp}')
 
@@ -170,7 +170,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         armature_data,
         segment_data: dict,
         parent_edit_bone: bpy.types.EditBone | None,
-        bvh: dict
+        bvh_dict: dict
     ):
         """Recursively creates a bone for the current joint, setting
         its head, parent, and then determining its tip based on
@@ -218,7 +218,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         children = segment_data.get('children')
         if children is not None and len(children) > 0:
             # If the mapped segment has just one child, we place the
-            # bone's tail at the child segment offset. 
+            # bone's tail at the child segment offset.
             if len(children) == 1:
                 edit_bone.tail = edit_bone.head + Vector(children[0]["offset"])
 
@@ -245,7 +245,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                         armature_data,
                         child_data,
                         edit_bone,
-                        bvh
+                        bvh_dict
                     )
 
     def create_armature() -> bpy.types.Armature:
@@ -283,7 +283,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         if obj is None:
             obj = bpy.context.active_object
         return obj
-    
+
     def get_active_armature() -> bpy.types.Object | None:
         """ Get active armature """
         arm = get_active_object()
@@ -297,7 +297,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         # If no `armature` parameter has been passed, get the selected/active object.
         if armature is None:
             armature = bpy.context.object
-        
+
         # Type check `armature`, which must exist and its `type` attribute must be equal to `'ARMATURE'`.
         if armature is not None and armature.type == 'ARMATURE':
             # Switch to `'POSE'` object interaction mode.
@@ -305,7 +305,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
             # Get the pose bone which name is equal to `name`.
             return armature.pose.bones.get(name)
-        
+
         # In any other case return `None`
         return None
 
@@ -338,14 +338,14 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                         bone_rest_pose_mat4 = bone_rest_pose_data.get('rest_pose')
                         bone_rest_pose_inv_mat4 = bone_rest_pose_data.get('rest_pose_inv')
 
-                        
+
                         rotation_mode_bak = pose_bone.rotation_mode
                         rotation_mode_cfg = ''.join([axis[0:1] for axis in segment_channel_names])[::-1]
                         euler = Euler(components, rotation_mode_cfg)
                         transform_mat4 = euler.to_matrix().to_4x4()
 
                         print(f'sandwich: {bone_rest_pose_data}')
-                        
+
                         # sandwich
                         bone_rotation_mat4 = (
                             bone_rest_pose_inv_mat4 @
@@ -383,7 +383,7 @@ def init_logging():
     # The `FileHandler` instanced by `basicConfig()` doesn't create missing
     # directories, passed in the `filename` parameter (undocumented).
     log_dir = os.path.join(PROJECT_ROOT, 'log')
-    
+
     # Create the directory, if it doesn't exist.
     os.makedirs(log_dir, exist_ok=True)
 
@@ -427,9 +427,10 @@ def import_bvh(bvh):
             bpy.ops.object.mode_set(mode='OBJECT')
 
         except Exception as e:
+            print(f"Error while importing BVH into Blender: {str(e)}")
             print("Traceback Info:")
             traceback.print_exc()
-    
+
     else:
         logger.info('Invalid BVH file.')
 
