@@ -8,7 +8,6 @@
 import enum
 import sys
 import os
-import traceback
 import logging
 from functools import reduce
 from typing import Sequence
@@ -441,29 +440,25 @@ def read_bvh(bvh_filepath):
     """
     bvh_dict = None
 
-    try:
-        # Create an input stream from filepath
-        input_stream = FileStream(bvh_filepath)
+    # Create an input stream from filepath
+    input_stream = FileStream(bvh_filepath)
 
-        # Create the lexer and the token stream
-        lexer = BVHLexer(input_stream)
-        stream = CommonTokenStream(lexer)
+    # Create the lexer and the token stream
+    lexer = BVHLexer(input_stream)
+    stream = CommonTokenStream(lexer)
 
-        # Create the parser consuming the token stream
-        parser = BVHParser(stream)
+    # Create the parser consuming the token stream
+    parser = BVHParser(stream)
 
-        # Parse the BVH file, beginning from the `bvh` rule, defined in the grammar `./BVH.g4`
-        tree = parser.bvh()
+    # Parse the BVH file, beginning from the `bvh` rule, defined in the grammar `./BVH.g4`
+    tree = parser.bvh()
 
-        v = BPYBVHVisitor()
-        bvh_dict = v.visit(tree)
+    v = BPYBVHVisitor()
+    bvh_dict = v.visit(tree)
 
-        print(f"Total visited nodes: {v.nodes_count}")
+    print(f"Total visited nodes: {v.nodes_count}")
 
-        print("\nParsing completed successfully!")
-
-    except Exception as e:
-        print(f"Error while parsing: {str(e)}")
+    print("\nParsing completed successfully!")
 
     return bvh_dict
 
