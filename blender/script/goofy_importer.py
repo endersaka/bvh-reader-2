@@ -397,7 +397,7 @@ def init_logging():
     logging.basicConfig(filename=os.path.join(log_dir, 'goofy_importer.log'), level=logging.NOTSET)
     logger.info('Logger Started')
 
-def import_bvh(bvh):
+def import_bvh(bvh_dict):
     """
     The `import_bvh` function imports a BVH file into Blender, creates an armature, sets bone hierarchy,
     retrieves rest poses, and poses the bones based on motion data.
@@ -406,7 +406,7 @@ def import_bvh(bvh):
     Hierarchy) file data that contains information about a skeleton's hierarchy and motion data. This
     function is designed to import this BVH data into Blender to create an armature and pose
     """
-    if bvh is not None:
+    if bvh_dict is not None:
         try:
             init_blender_context()
 
@@ -414,14 +414,14 @@ def import_bvh(bvh):
 
             create_bones(
                     armature_data,
-                    bvh.get('hierarchy'),
+                    bvh_dict.get('hierarchy'),
                     None,
-                    bvh
+                    bvh_dict
                 )
 
             get_rest_poses(armature_data)
 
-            pose_bones(bvh.get('motion'))
+            pose_bones(bvh_dict.get('motion'))
 
                 # Switch back to Object Mode
             bpy.ops.object.mode_set(mode='OBJECT')
@@ -447,7 +447,7 @@ def read_bvh(bvh_filepath):
     function returns the parsed BVH structure. If an error occurs during parsing, an error message is
     printed, and `None` is returned.
     """
-    bvh = None
+    bvh_dict = None
 
     try:
         # Create an input stream from filepath
@@ -464,7 +464,7 @@ def read_bvh(bvh_filepath):
         tree = parser.bvh()
 
         v = BPYBVHVisitor()
-        bvh = v.visit(tree)
+        bvh_dict = v.visit(tree)
 
         print(f"Total visited nodes: {v.nodes_count}")
 
@@ -473,7 +473,7 @@ def read_bvh(bvh_filepath):
     except Exception as e:
         print(f"Error while parsing: {str(e)}")
 
-    return bvh
+    return bvh_dict
 
 if __name__ == "__main__":
     init_logging()
