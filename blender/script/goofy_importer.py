@@ -83,9 +83,14 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
     REST_POSE = []
 
     def switch_mode(mode):
-        """ Switch to selected `mode` (see https://docs.blender.org/api/4.2/bpy_types_enum_items/object_mode_items.html#rna-enum-object-mode-items) """
-        bpy.ops.object.mode_set(mode=mode)
-        print(f'Switched to {mode} mode')
+        """ Switch to selected `mode`
+            https://docs.blender.org/api/4.2/bpy_types_enum_items/object_mode_items.html#rna-enum-object-mode-items
+        """
+        # Get the selected/active object.
+        obj = bpy.context.object
+        if obj is not None and obj.mode != mode:
+            bpy.ops.object.mode_set(mode=mode)
+            print(f'Switched to {mode} mode')
 
     def get_rest_poses(armature_data):
         """ Bla, bla, bla... """
@@ -167,7 +172,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         return Euler([radians(channel) for channel in rotation_components])
 
     def create_bones(
-        armature_data,
+        armature_data: bpy.types.Armature,
         segment_data: dict,
         parent_edit_bone: bpy.types.EditBone | None,
         bvh_dict: dict
@@ -266,16 +271,6 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         print("Switched to Edit Mode")
 
         return armature_data
-
-    def init_blender_context():
-        """ Initialize the Blender scene for Armature building. """
-        # Clear any selection and ensure we are in a mode that allows object creation
-        if bpy.context.object and bpy.context.object.mode != 'OBJECT':
-            bpy.ops.object.mode_set(mode='OBJECT')
-
-        # Clear existing objects in the scene before running
-        bpy.ops.object.select_all(action='SELECT')
-        bpy.ops.object.delete(use_global=False)
 
     def get_active_object() -> bpy.types.Object | None:
         """ Get active object """
@@ -397,7 +392,7 @@ def init_logging():
     logging.basicConfig(filename=os.path.join(log_dir, 'goofy_importer.log'), level=logging.NOTSET)
     logger.info('Logger Started')
 
-def import_bvh(bvh_dict):
+def import_bvh(bvh_dict: dict | None):
     """
     The `import_bvh` function imports a BVH file into Blender, creates an armature, sets bone hierarchy,
     retrieves rest poses, and poses the bones based on motion data.
@@ -407,13 +402,16 @@ def import_bvh(bvh_dict):
     function is designed to import this BVH data into Blender to create an armature and pose
     """
     if bvh_dict is not None:
-        init_blender_context()
         armature_data = create_armature()
+        hierarchy = bvh_dict.get('hierarchy')
 
-        try:
+        # TODO: we should validate `armature_data` and `hierarchy`.
+        if armature_data is not None and hierarchy is not None:
+            switch_mode('OBJECT')
+
             create_bones(
                     armature_data,
-                    bvh_dict.get('hierarchy'),
+                    hierarchy,
                     None,
                     bvh_dict
                 )
@@ -422,16 +420,11 @@ def import_bvh(bvh_dict):
 
             pose_bones(bvh_dict.get('motion'))
 
-            # Switch back to Object Mode
-            bpy.ops.object.mode_set(mode='OBJECT')
-
-        except Exception as e:
-            print(f"Error while importing BVH into Blender: {str(e)}")
-            print("Traceback Info:")
-            traceback.print_exc()
+        # Switch back to Object Mode
+        switch_mode(mode='OBJECT')
 
     else:
-        logger.info('Invalid BVH file.')
+        logger.info('BVH data is None, cannot import.')
 
 
 def read_bvh(bvh_filepath):
