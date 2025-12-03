@@ -58,7 +58,7 @@ elif WORKINGENVIRONMENT == WorkingEnvironment.STANDALONE:
 
 print("Script Directory:", SCRIPT_DIR)
 
-PROJECT_ROOT = os.path.join(SCRIPT_DIR, '..', '..')
+PROJECT_ROOT = os.path.join(SCRIPT_DIR, '..')
 print("Project root:", PROJECT_ROOT)
 
 CONTEXTSYSPATHS.append(SCRIPT_DIR)
@@ -71,9 +71,9 @@ for path in CONTEXTSYSPATHS:
 
 # Now we can import Antlr modules as if we were in the project root.
 try:
-    from BVHParser import BVHParser
-    from BVHLexer import BVHLexer
-    from BPYBVHVisitor import BPYBVHVisitor
+    from src.bvh_reader_2.generated.BVHParser import BVHParser
+    from src.bvh_reader_2.generated.BVHLexer import BVHLexer
+    from src.bvh_reader_2.BPYBVHVisitor import BPYBVHVisitor
     print("Successfully imported Antlr modules!")
 except ImportError as e:
     print(f"Error importing Antlr modules: {e}")
