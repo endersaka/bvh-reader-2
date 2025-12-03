@@ -291,14 +291,22 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             return None
         return arm
 
-    def get_pose_bone_by_name(name, armature=None):
+    def get_pose_bone_by_name(name, armature=None) -> bpy.types.PoseBone | None:
         """ Get pose bone by name. If `obj` is passed and its `type` attribute
             is 'ARMATURE', get the named bone from the passed object. """
+        # If no `armature` parameter has been passed, get the selected/active object.
         if armature is None:
             armature = bpy.context.object
+        
+        # Type check `armature`, which must exist and its `type` attribute must be equal to `'ARMATURE'`.
         if armature is not None and armature.type == 'ARMATURE':
+            # Switch to `'POSE'` object interaction mode.
             switch_mode('POSE')
+
+            # Get the pose bone which name is equal to `name`.
             return armature.pose.bones.get(name)
+        
+        # In any other case return `None`
         return None
 
     def pose_bones(motion):
@@ -319,39 +327,40 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                 # `segment_name` is found.
                 pose_bone = get_pose_bone_by_name(segment_name, armature=armature)
 
-                # TODO: if we make also the hierarchy accessible we can retrive this data
-                # automatically and perform verification and sanification checks.
-                segment_channel_names = ('Xrotation', 'Yrotation', 'Zrotation')
-                components = [radians(segment_motion_data.get(channel_name)) for channel_name in segment_channel_names]
+                if pose_bone is not None:
+                    # TODO: if we make also the hierarchy accessible we can retrive this data
+                    # automatically and perform verification and sanification checks.
+                    segment_channel_names = ('Xrotation', 'Yrotation', 'Zrotation')
+                    components = [radians(segment_motion_data.get(channel_name)) for channel_name in segment_channel_names]
 
-                bone_rest_pose_data = next((b for b in REST_POSE if b.get('name') == segment_name), None)
-                if bone_rest_pose_data is not None:
-                    bone_rest_pose_mat4 = bone_rest_pose_data.get('rest_pose')
-                    bone_rest_pose_inv_mat4 = bone_rest_pose_data.get('rest_pose_inv')
+                    bone_rest_pose_data = next((b for b in REST_POSE if b.get('name') == segment_name), None)
+                    if bone_rest_pose_data is not None:
+                        bone_rest_pose_mat4 = bone_rest_pose_data.get('rest_pose')
+                        bone_rest_pose_inv_mat4 = bone_rest_pose_data.get('rest_pose_inv')
 
-                    
-                    rotation_mode_bak = pose_bone.rotation_mode
-                    rotation_mode_cfg = ''.join([axis[0:1] for axis in segment_channel_names])[::-1]
-                    euler = Euler(components, rotation_mode_cfg)
-                    transform_mat4 = euler.to_matrix().to_4x4()
+                        
+                        rotation_mode_bak = pose_bone.rotation_mode
+                        rotation_mode_cfg = ''.join([axis[0:1] for axis in segment_channel_names])[::-1]
+                        euler = Euler(components, rotation_mode_cfg)
+                        transform_mat4 = euler.to_matrix().to_4x4()
 
-                    print(f'sandwich: {bone_rest_pose_data}')
-                    
-                    # sandwich
-                    bone_rotation_mat4 = (
-                        bone_rest_pose_inv_mat4 @
-                        transform_mat4 @
-                        bone_rest_pose_mat4
-                    )
+                        print(f'sandwich: {bone_rest_pose_data}')
+                        
+                        # sandwich
+                        bone_rotation_mat4 = (
+                            bone_rest_pose_inv_mat4 @
+                            transform_mat4 @
+                            bone_rest_pose_mat4
+                        )
 
-                    pose_bone.rotation_mode = rotation_mode_cfg
-                    # Get bone rotation mode and apply transform accordingly.
-                    # if rotation_mode_bak == 'QUATERNION':
-                    #     pose_bone.rotation_quaternion = bone_rotation_mat4.to_quaternion()
-                    # elif rotation_mode_bak == 'EULER':
-                    pose_bone.rotation_euler = bone_rotation_mat4.to_euler(rotation_mode_cfg)
+                        pose_bone.rotation_mode = rotation_mode_cfg
+                        # Get bone rotation mode and apply transform accordingly.
+                        # if rotation_mode_bak == 'QUATERNION':
+                        #     pose_bone.rotation_quaternion = bone_rotation_mat4.to_quaternion()
+                        # elif rotation_mode_bak == 'EULER':
+                        pose_bone.rotation_euler = bone_rotation_mat4.to_euler(rotation_mode_cfg)
 
-                    pose_bone.rotation_mode = rotation_mode_bak
+                        pose_bone.rotation_mode = rotation_mode_bak
 
 # TODO: check at https://docs.blender.org/api/4.2/mathutils.html#mathutils.Euler,
 # there is a simpler example using `format()`.
