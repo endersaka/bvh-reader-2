@@ -1,4 +1,6 @@
 .antlr/
+*.interp
+*.tokens
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
