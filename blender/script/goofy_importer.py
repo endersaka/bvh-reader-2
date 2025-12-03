@@ -8,7 +8,6 @@
 import enum
 import sys
 import os
-import traceback
 import logging
 from functools import reduce
 from typing import Sequence
@@ -83,10 +82,14 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
     REST_POSE = []
 
     def switch_mode(mode):
-        """ Switch to selected `mode` (see https://docs.blender.org/api/4.2/bpy_types_enum_items/object_mode_items.html#rna-enum-object-mode-items) """
-        bpy.ops.object.mode_set(mode=mode)
-        
-        print(f'Switched to {bpy.context.active_object.mode} Mode')
+        """ Switch to selected `mode`
+            https://docs.blender.org/api/4.2/bpy_types_enum_items/object_mode_items.html#rna-enum-object-mode-items
+        """
+        # Get the selected/active object.
+        obj = bpy.context.object
+        if obj is not None and obj.mode != mode:
+            bpy.ops.object.mode_set(mode=mode)
+            print(f'Switched to {mode} mode')
 
     def get_rest_poses(armature_data):
         """ Bla, bla, bla... """
@@ -96,7 +99,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         bones = armature_data.bones
 
         print(f'Bones count: {len(bones)}')
-        
+
         for bone in bones:
             # For use later in sandwich computation, rest pose matrix and inverse matrix.
             bone_rest_pose = bone.matrix_local.to_3x3()
@@ -129,8 +132,8 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         """
         if points is None:
             return Vector((.0, .0, .1))
-        
-        mp = reduce(lambda v1, v2: v1 + v2, points) / len(points)
+
+        mp = reduce(lambda v1, v2: v1 + v2, points, Vector((0, 0, 0))) / len(points)
         print(f'midpoint: {mp}')
 
         return mp
@@ -168,10 +171,10 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         return Euler([radians(channel) for channel in rotation_components])
 
     def create_bones(
-        armature_data,
+        armature_data: bpy.types.Armature,
         segment_data: dict,
-        parent_edit_bone: bpy.types.EditBone,
-        bvh: dict
+        parent_edit_bone: bpy.types.EditBone | None,
+        bvh_dict: dict
     ):
         """Recursively creates a bone for the current joint, setting
         its head, parent, and then determining its tip based on
@@ -196,6 +199,8 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
                 i += 1
             bone_name = f'{bone_name}.{i:03d}'
 
+        switch_mode('EDIT')
+        
         # Create `bpy.types.EditBone`.
         edit_bone = edit_bones.new(bone_name)
         print(f'Edit bone "{edit_bone.name}" created.')
@@ -219,7 +224,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         children = segment_data.get('children')
         if children is not None and len(children) > 0:
             # If the mapped segment has just one child, we place the
-            # bone's tail at the child segment offset. 
+            # bone's tail at the child segment offset.
             if len(children) == 1:
                 edit_bone.tail = edit_bone.head + Vector(children[0]["offset"])
 
@@ -237,16 +242,17 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             edit_bone.tail = edit_bone.head + Vector((0.0, 0.0, 0.1))
 
         # Recursively traverse the hierarchy and create descendant bone
-        for child_data in children:
-            # `End Site` blocks serve only as terminators of the hierarchy.
-            # Don't go further!
-            if child_data.get('name') != 'End Site':
-                create_bones(
-                    armature_data,
-                    child_data,
-                    edit_bone,
-                    bvh
-                )
+        if children is not None:
+            for child_data in children:
+                # `End Site` blocks serve only as terminators of the hierarchy.
+                # Don't go further!
+                if child_data.get('name') != 'End Site':
+                    create_bones(
+                        armature_data,
+                        child_data,
+                        edit_bone,
+                        bvh_dict
+                    )
 
     def create_armature() -> bpy.types.Armature:
         """ Create the armature, prepare the environment, and return a
@@ -267,25 +273,44 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
         return armature_data
 
-    def init_blender_context():
-        """ Initialize the Blender scene for Armature building. """
-        # Clear any selection and ensure we are in a mode that allows object creation
-        if bpy.context.object and bpy.context.object.mode != 'OBJECT':
-            bpy.ops.object.mode_set(mode='OBJECT')
+    def get_active_object() -> bpy.types.Object | None:
+        """ Get active object """
+        obj = bpy.context.object
+        if obj is None:
+            obj = bpy.context.active_object
+        return obj
 
-        # Clear existing objects in the scene before running
-        bpy.ops.object.select_all(action='SELECT')
-        bpy.ops.object.delete(use_global=False)
+    def get_active_armature() -> bpy.types.Object | None:
+        """ Get active armature """
+        arm = get_active_object()
+        if arm is None or arm.type != 'ARMATURE':
+            return None
+        return arm
 
-    # NOTE: this utility function could eventually switch to 'POSE' mode, if needed.
-    def get_pose_bone_by_name(pose_bone_name):
-        """ Get pose bone by name """
-        return bpy.context.object.pose.bones[pose_bone_name]
+    def get_pose_bone_by_name(name, armature=None) -> bpy.types.PoseBone | None:
+        """ Get pose bone by name. If `obj` is passed and its `type` attribute
+            is 'ARMATURE', get the named bone from the passed object. """
+        # If no `armature` parameter has been passed, get the selected/active object.
+        if armature is None:
+            armature = bpy.context.object
+
+        # Type check `armature`, which must exist and its `type` attribute must be equal to `'ARMATURE'`.
+        if armature is not None and armature.type == 'ARMATURE':
+            # Switch to `'POSE'` object interaction mode.
+            switch_mode('POSE')
+
+            # Get the pose bone which name is equal to `name`.
+            return armature.pose.bones.get(name)
+
+        # In any other case return `None`
+        return None
 
     def pose_bones(motion):
-        """ Pose bones. """
+        """ Pose bones using motion data. """
 
-        switch_mode('POSE')
+        # TODO: we should present the user with the ability to choose an object
+        # in case there is no valid active object.
+        armature = get_active_armature()
 
         # Even if, unlikely, `motion_data` could be `None`.
         motion_data = motion.get('motion_data')
@@ -294,42 +319,44 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
 
             for segment_motion_data in frame_data:
                 segment_name = segment_motion_data.get('name')
-                pose_bone = get_pose_bone_by_name(segment_name)
+                # TODO: We should handle the case in which no bone with name
+                # `segment_name` is found.
+                pose_bone = get_pose_bone_by_name(segment_name, armature=armature)
 
-                # TODO: if we make also the hierarchy accessible we can retrive this data
-                # automatically and perform verification and sanification checks.
-                segment_channel_names = ('Xrotation', 'Yrotation', 'Zrotation')
-                components = [radians(segment_motion_data.get(channel_name)) for channel_name in segment_channel_names]
+                if pose_bone is not None:
+                    # TODO: if we make also the hierarchy accessible we can retrive this data
+                    # automatically and perform verification and sanification checks.
+                    segment_channel_names = ('Xrotation', 'Yrotation', 'Zrotation')
+                    components = [radians(segment_motion_data.get(channel_name)) for channel_name in segment_channel_names]
+
+                    bone_rest_pose_data = next((b for b in REST_POSE if b.get('name') == segment_name), None)
+                    if bone_rest_pose_data is not None:
+                        bone_rest_pose_mat4 = bone_rest_pose_data.get('rest_pose')
+                        bone_rest_pose_inv_mat4 = bone_rest_pose_data.get('rest_pose_inv')
 
 
-                bone_rest_pose_data = next((b for b in REST_POSE if b.get('name') == segment_name), None)
-                if bone_rest_pose_data is not None:
-                    bone_rest_pose_mat4 = bone_rest_pose_data.get('rest_pose')
-                    bone_rest_pose_inv_mat4 = bone_rest_pose_data.get('rest_pose_inv')
+                        rotation_mode_bak = pose_bone.rotation_mode
+                        rotation_mode_cfg = ''.join([axis[0:1] for axis in segment_channel_names])[::-1]
+                        euler = Euler(components, rotation_mode_cfg)
+                        transform_mat4 = euler.to_matrix().to_4x4()
 
-                    
-                    rotation_mode_bak = pose_bone.rotation_mode
-                    rotation_mode_cfg = ''.join([axis[0:1] for axis in segment_channel_names])[::-1]
-                    euler = Euler(components, rotation_mode_cfg)
-                    transform_mat4 = euler.to_matrix().to_4x4()
+                        print(f'sandwich: {bone_rest_pose_data}')
 
-                    print(f'sandwich: {bone_rest_pose_data}')
-                    
-                    # sandwich
-                    bone_rotation_mat4 = (
-                        bone_rest_pose_inv_mat4 @
-                        transform_mat4 @
-                        bone_rest_pose_mat4
-                    )
+                        # sandwich
+                        bone_rotation_mat4 = (
+                            bone_rest_pose_inv_mat4 @
+                            transform_mat4 @
+                            bone_rest_pose_mat4
+                        )
 
-                    pose_bone.rotation_mode = rotation_mode_cfg
-                    # Get bone rotation mode and apply transform accordingly.
-                    # if rotation_mode_bak == 'QUATERNION':
-                    #     pose_bone.rotation_quaternion = bone_rotation_mat4.to_quaternion()
-                    # elif rotation_mode_bak == 'EULER':
-                    pose_bone.rotation_euler = bone_rotation_mat4.to_euler(rotation_mode_cfg)
+                        pose_bone.rotation_mode = rotation_mode_cfg
+                        # Get bone rotation mode and apply transform accordingly.
+                        # if rotation_mode_bak == 'QUATERNION':
+                        #     pose_bone.rotation_quaternion = bone_rotation_mat4.to_quaternion()
+                        # elif rotation_mode_bak == 'EULER':
+                        pose_bone.rotation_euler = bone_rotation_mat4.to_euler(rotation_mode_cfg)
 
-                    pose_bone.rotation_mode = rotation_mode_bak
+                        pose_bone.rotation_mode = rotation_mode_bak
 
 # TODO: check at https://docs.blender.org/api/4.2/mathutils.html#mathutils.Euler,
 # there is a simpler example using `format()`.
@@ -352,7 +379,7 @@ def init_logging():
     # The `FileHandler` instanced by `basicConfig()` doesn't create missing
     # directories, passed in the `filename` parameter (undocumented).
     log_dir = os.path.join(PROJECT_ROOT, 'log')
-    
+
     # Create the directory, if it doesn't exist.
     os.makedirs(log_dir, exist_ok=True)
 
@@ -366,7 +393,7 @@ def init_logging():
     logging.basicConfig(filename=os.path.join(log_dir, 'goofy_importer.log'), level=logging.NOTSET)
     logger.info('Logger Started')
 
-def import_bvh(bvh):
+def import_bvh(bvh_dict: dict | None):
     """
     The `import_bvh` function imports a BVH file into Blender, creates an armature, sets bone hierarchy,
     retrieves rest poses, and poses the bones based on motion data.
@@ -375,32 +402,30 @@ def import_bvh(bvh):
     Hierarchy) file data that contains information about a skeleton's hierarchy and motion data. This
     function is designed to import this BVH data into Blender to create an armature and pose
     """
-    if bvh is not None:
-        try:
-            init_blender_context()
+    if bvh_dict is not None:
+        armature_data = create_armature()
+        hierarchy = bvh_dict.get('hierarchy')
 
-            armature_data = create_armature()
+        # TODO: we should validate `armature_data` and `hierarchy`.
+        if armature_data is not None and hierarchy is not None:
+            switch_mode('OBJECT')
 
             create_bones(
                     armature_data,
-                    bvh.get('hierarchy'),
+                    hierarchy,
                     None,
-                    bvh
+                    bvh_dict
                 )
 
             get_rest_poses(armature_data)
 
-            pose_bones(bvh.get('motion'))
+            pose_bones(bvh_dict.get('motion'))
 
-                # Switch back to Object Mode
-            bpy.ops.object.mode_set(mode='OBJECT')
+        # Switch back to Object Mode
+        switch_mode(mode='OBJECT')
 
-        except Exception as e:
-            print("Traceback Info:")
-            traceback.print_exc()
-    
     else:
-        logger.info('Invalid BVH file.')
+        logger.info('BVH data is None, cannot import.')
 
 
 def read_bvh(bvh_filepath):
@@ -415,33 +440,30 @@ def read_bvh(bvh_filepath):
     function returns the parsed BVH structure. If an error occurs during parsing, an error message is
     printed, and `None` is returned.
     """
-    bvh = None
+    bvh_dict = None
 
-    try:
-        # Create an input stream from filepath
-        input_stream = FileStream(bvh_filepath)
+    # Create an input stream from filepath
+    input_stream = FileStream(bvh_filepath)
 
-        # Create the lexer and the token stream
-        lexer = BVHLexer(input_stream)
-        stream = CommonTokenStream(lexer)
+    # Create the lexer and the token stream
+    lexer = BVHLexer(input_stream)
+    stream = CommonTokenStream(lexer)
 
-        # Create the parser consuming the token stream
-        parser = BVHParser(stream)
+    # Create the parser consuming the token stream
+    parser = BVHParser(stream)
 
-        # Parse the BVH file, beginning from the `bvh` rule, defined in the grammar `./BVH.g4`
-        tree = parser.bvh()
+    # Parse the BVH file and get the parse tree context
+    bvh_context = parser.bvh()
 
-        v = BPYBVHVisitor()
-        bvh = v.visit(tree)
+    # Visit the parse tree to build the BVH dictionary
+    bpy_bvh_visitor = BPYBVHVisitor()
+    bvh_dict = bpy_bvh_visitor.visit(bvh_context)
 
-        print(f"Total visited nodes: {v.nodes_count}")
+    print(f"Total visited nodes: {bpy_bvh_visitor.nodes_count}")
 
-        print("\nParsing completed successfully!")
+    print("\nParsing completed successfully!")
 
-    except Exception as e:
-        print(f"Error while parsing: {str(e)}")
-
-    return bvh
+    return bvh_dict
 
 if __name__ == "__main__":
     init_logging()
