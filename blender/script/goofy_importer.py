@@ -129,7 +129,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
         if points is None:
             return Vector((.0, .0, .1))
         
-        mp = reduce(lambda v1, v2: v1 + v2, points) / len(points)
+        mp = reduce(lambda v1, v2: v1 + v2, points, Vector((0, 0, 0))) / len(points)
         print(f'midpoint: {mp}')
 
         return mp
@@ -169,7 +169,7 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
     def create_bones(
         armature_data,
         segment_data: dict,
-        parent_edit_bone: bpy.types.EditBone,
+        parent_edit_bone: bpy.types.EditBone | None,
         bvh: dict
     ):
         """Recursively creates a bone for the current joint, setting
@@ -236,16 +236,17 @@ if WORKINGENVIRONMENT == WorkingEnvironment.BLENDER:
             edit_bone.tail = edit_bone.head + Vector((0.0, 0.0, 0.1))
 
         # Recursively traverse the hierarchy and create descendant bone
-        for child_data in children:
-            # `End Site` blocks serve only as terminators of the hierarchy.
-            # Don't go further!
-            if child_data.get('name') != 'End Site':
-                create_bones(
-                    armature_data,
-                    child_data,
-                    edit_bone,
-                    bvh
-                )
+        if children is not None:
+            for child_data in children:
+                # `End Site` blocks serve only as terminators of the hierarchy.
+                # Don't go further!
+                if child_data.get('name') != 'End Site':
+                    create_bones(
+                        armature_data,
+                        child_data,
+                        edit_bone,
+                        bvh
+                    )
 
     def create_armature() -> bpy.types.Armature:
         """ Create the armature, prepare the environment, and return a
